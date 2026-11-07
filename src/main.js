@@ -1,7 +1,7 @@
 // Boot: the canvas, input and the frame loop.
 import { W, H } from "./config.js";
 import { Game } from "./game.js";
-import { unlock, toggleMute } from "./audio.js";
+import { unlock, toggleMute, audioStatus } from "./audio.js";
 
 const canvas = document.getElementById("game");
 canvas.width = W;
@@ -73,3 +73,4 @@ requestAnimationFrame(frame);
 
 // for automated checks
 window.__game = game;
+window.__audio = audioStatus;

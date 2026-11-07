@@ -5,7 +5,7 @@
 
 | 파일 | 원본 | 작가 | 출처 |
 |---|---|---|---|
-| music.mp3 | Lights at Night | Tsorthan Grove | https://opengameart.org/content/lights-at-night |
+| music.mp3 | Lights at Night (앞쪽 페이드인 16초를 잘라 바로 시작하게 편집) | Tsorthan Grove | https://opengameart.org/content/lights-at-night |
 | chute.mp3, close.mp3 | RPG Audio: cloth1, cloth2 | Kenney | https://opengameart.org/content/50-rpg-sound-effects |
 | pickup.mp3, mult.mp3, mult-lost.mp3, tired.mp3, coat.mp3 | Interface Sounds: glass_002, maximize_008, minimize_001, minimize_004, toggle_001 | Kenney | https://opengameart.org/content/interface-sounds |
 | best.mp3 | Music Jingles: jingles_SAX03 | Kenney | https://opengameart.org/content/85-short-music-jingles |

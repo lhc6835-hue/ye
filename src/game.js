@@ -8,13 +8,11 @@ import * as featherFx from "../vendor/pixelfx/fx/holy/feather-burst.js";
 import { W, H, PLAY_L, PX_PER_M, TUNE } from "./config.js";
 import { Cat } from "./cat.js";
 import { World, overlap } from "./world.js";
-import { COATS } from "./sprites.js";
 import { sfx, setWind, isMuted, duckMusic } from "./audio.js";
 
 const STREAK = hex("#8a82b0");
 const INK = hex("#1b1426"), WHITE = hex("#ffffff"), SOFT = hex("#cfc8e8"), GOLD = hex("#ffd24a"), PINK = hex("#ff6fae");
 const MULT_COLORS = ["#cfc8e8", "#cfc8e8", "#8ff0ff", "#9cff8a", "#ffe066", "#ffb04a", "#ff7a5a", "#ff5fa2", "#d27aff", "#ffffff"].map(hex);
-const COAT_ORDER = Object.keys(COATS);
 const START_X = PLAY_L + 40, START_Y = -7;
 
 const store = {
@@ -49,7 +47,7 @@ export class Game {
     this.frame = createFrame(W, H);
     this.img = new ImageData(W, H);
     this.best = store.get("best", 0);
-    this.coat = COAT_ORDER.includes(store.get("coat")) ? store.get("coat") : "ginger";
+    this.coat = "ginger";
     this.runs = 0;
     this.reset();
   }
@@ -94,14 +92,6 @@ export class Game {
     return Math.max(0, this.cat.y) / PX_PER_M;
   }
 
-  cycleCoat(d) {
-    const i = (COAT_ORDER.indexOf(this.coat) + d + COAT_ORDER.length) % COAT_ORDER.length;
-    this.coat = COAT_ORDER[i];
-    this.cat.setCoat(this.coat);
-    store.set("coat", this.coat);
-    sfx.coat();
-  }
-
   addFx(mod, opts, wx, wy, hud = false) {
     this.fx.push({ fx: createFx(mod, { x: wx, y: hud ? wy : 0, ...opts }), wx, wy, hud });
   }
@@ -123,8 +113,6 @@ export class Game {
     const cat = this.cat;
 
     if (this.state === "title") {
-      if (input.leftPressed) this.cycleCoat(-1);
-      if (input.rightPressed) this.cycleCoat(1);
       if (input.pressed) this.start();
       cat.update(dt, input, 0);
       return;
@@ -133,8 +121,6 @@ export class Game {
     if (this.state === "dead") {
       this.deadT += dt;
       this.world.update(dt, this.camY);
-      if (input.leftPressed) this.cycleCoat(-1);
-      if (input.rightPressed) this.cycleCoat(1);
       if (this.deadT > 0.45 && (input.pressed || input.retry)) {
         this.reset();
         this.start();
@@ -312,8 +298,6 @@ export class Game {
     p.text("A D OR ARROWS: MOVE", W / 2, 214, SOFT, { align: "center", outline: INK });
     p.text("DIVE LONGER = BIGGER x", W / 2, 224, GOLD, { align: "center", outline: INK });
     p.text("CHUTE RUNS OUT. DIVE TO REFILL", W / 2, 232, GOLD, { align: "center", outline: INK });
-    p.text("< " + COATS[this.coat].name + " >", W / 2, 248, WHITE, { align: "center", outline: INK });
-    p.text("A D: CHANGE CAT", W / 2, 256, SOFT, { align: "center", outline: INK });
     if (this.best > 0) p.text("BEST " + this.best, W / 2, 274, GOLD, { align: "center", outline: INK });
     p.text(isMuted() ? "M: SOUND OFF" : "M: SOUND ON", W / 2, H - 10, SOFT, { align: "center", outline: INK });
   }
@@ -333,6 +317,5 @@ export class Game {
     p.text(String(this.best), x0 + w - 12, y0 + 66, GOLD, { align: "right" });
     if (this.newBest && Math.floor(this.t * 4) % 2 === 0) p.text("NEW BEST!", W / 2, y0 + 80, GOLD, { align: "center", outline: INK });
     if (this.deadT > 0.45) p.text("CLICK TO RETRY", W / 2, y0 + 96, Math.sin(this.t * 6) > -0.3 ? WHITE : SOFT, { align: "center" });
-    p.text("< " + COATS[this.coat].name + " >", W / 2, y0 + h + 10, SOFT, { align: "center", outline: INK });
   }
 }
