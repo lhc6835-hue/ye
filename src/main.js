@@ -8,9 +8,13 @@ canvas.width = W;
 canvas.height = H;
 const ctx = canvas.getContext("2d");
 
+const stage = canvas.parentElement;
 function fit() {
-  // whole-number scaling keeps every pixel square; on small screens fall back to a fraction
-  const k = Math.min(innerWidth / W, innerHeight / H), s = k >= 1 ? Math.floor(k) : k;
+  // fill the stage's content box; whole-number scaling keeps every pixel square, small screens get a fraction
+  const cs = getComputedStyle(stage);
+  const bw = stage.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const bh = stage.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  const k = Math.min(bw / W, bh / H), s = k >= 1 ? Math.floor(k) : k;
   canvas.style.width = W * s + "px";
   canvas.style.height = H * s + "px";
 }

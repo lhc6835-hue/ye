@@ -2,16 +2,23 @@
 <html lang="ko">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
     <title>Catchute</title>
+    <meta name="claude:viewport-fit-sides" content="cover" />
     <style>
-      html, body { margin: 0; height: 100%; background: #0d0a18; overflow: hidden; }
-      body { display: flex; align-items: center; justify-content: center; user-select: none; -webkit-user-select: none; touch-action: none; }
+      /* one arcade screen, centered; a single dark look on purpose */
+      :root { --ground: #0d0a18; color-scheme: dark; }
+      html, body { height: 100%; margin: 0; background: var(--ground); overflow: hidden; }
+      #stage {
+        box-sizing: border-box; height: 100%; display: flex; align-items: center; justify-content: center;
+        padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+        user-select: none; -webkit-user-select: none; touch-action: none;
+      }
       canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; cursor: pointer; }
     </style>
   </head>
   <body>
-    <canvas id="game"></canvas>
+    <main id="stage"><canvas id="game" aria-label="Catchute game"></canvas></main>
     <script type="module" src="./src/main.js"></script>
   </body>
 </html>
