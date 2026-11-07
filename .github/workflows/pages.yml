@@ -29,9 +29,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - run: mkdir -p _site && cp dist/catchute.html _site/index.html
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: dist
       - id: deployment
         uses: actions/deploy-pages@v4

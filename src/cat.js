@@ -7,6 +7,7 @@ const INK = hex("#1b1426"), LINE = hex("#3b2c40");
 const CANOPY = [hex("#e0403c"), hex("#f3e7d0")], CANOPY_SHADE = [hex("#a32a35"), hex("#cdbfa8")];
 const SCARF = [hex("#e0403c"), hex("#b8303a")];
 const SCARF_LEN = 8;
+const GAUGE = hex("#f3e7d0"), GAUGE_LOW = hex("#e0403c");
 
 // the body's hit box around (x, y), smaller than the drawing so grazes feel fair
 const HIT = { x0: -7, x1: 7, y0: -3, y1: 5 };
@@ -30,6 +31,9 @@ export class Cat {
     this.t = 0;
     this.blink = 2;
     this.standing = true;
+    this.canopy = 1; // gauge: 1 full .. 0 spent
+    this.spent = false; // ran dry: stays packed until refilled to TUNE.canopyReopen
+    this.justSpent = false;
     this.scarf = Array.from({ length: SCARF_LEN }, () => ({ x, y }));
   }
 
@@ -41,8 +45,19 @@ export class Cat {
       this.updateScarf(dt);
       return;
     }
-    const want = input.hold;
+    this.justSpent = false;
+    const want = input.hold && !this.spent;
     this.open = clamp(this.open + (want ? dt / TUNE.openTime : -dt / TUNE.closeTime));
+    if (this.open > 0.5) {
+      this.canopy -= TUNE.canopyDrain * dt;
+      if (this.canopy <= 0) {
+        this.canopy = 0;
+        this.spent = this.justSpent = true;
+      }
+    } else {
+      this.canopy = Math.min(1, this.canopy + TUNE.canopyRefill * dt);
+      if (this.spent && this.canopy >= TUNE.canopyReopen) this.spent = false;
+    }
 
     // falling: gravity up to the dive speed, or the canopy braking down to its own
     const dive = lerp(TUNE.diveSpeed, TUNE.diveSpeedDeep, k);
@@ -54,7 +69,8 @@ export class Cat {
     const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0);
     if (dir) {
       this.facing = dir;
-      this.vx = clamp(this.vx + dir * TUNE.moveAccel * dt, -TUNE.moveSpeed, TUNE.moveSpeed);
+      const max = TUNE.moveSpeed * lerp(1, TUNE.chuteSteer, this.open);
+      this.vx = clamp(this.vx + dir * TUNE.moveAccel * dt, -max, max);
     } else {
       const b = TUNE.moveBrake * dt;
       this.vx = Math.abs(this.vx) <= b ? 0 : this.vx - Math.sign(this.vx) * b;
@@ -129,6 +145,15 @@ export class Cat {
       rows = this.blink < 0 ? GLIDE[2] : GLIDE[swing];
     } else rows = DIVE[Math.floor(this.t * 14) % 2];
     p.sprite(rows, this.pal, this.left, sy(this.top), { flip });
+    if (!this.standing && this.canopy < 0.999) this.drawGauge(p, sy(this.top) - 5);
+  }
+
+  // the canopy gauge, a small bar over the cat while it isn't full
+  drawGauge(p, y) {
+    const w = 16, x = Math.round(this.x - w / 2), fill = Math.round((w - 2) * this.canopy);
+    const c = this.spent ? (Math.floor(this.t * 10) % 2 ? GAUGE_LOW : INK) : this.canopy < 0.3 ? GAUGE_LOW : GAUGE;
+    p.rect(x, y, w, 3, INK);
+    p.rect(x + 1, y + 1, fill, 1, c);
   }
 
   drawCanopy(p, rx, ry) {

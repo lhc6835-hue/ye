@@ -62,7 +62,9 @@ export class World {
     this.seed = seed;
     this.obs = []; // { type, rects, top, bottom, passed, ... }
     this.fish = []; // { x, y, taken }
-    this.nextY = 300;
+    this.nextY = 230;
+    this.spacing = 200;
+    this.free = [PLAY_L + 8, PLAY_R - 8]; // where the cat can pass at the last row
     this.t = 0;
   }
 
@@ -75,48 +77,87 @@ export class World {
     while (this.nextY < yMax) {
       const k = this.hardness(this.nextY), R = this.rng;
       this.spawn(this.nextY, k);
-      this.nextY += lerp(104, 54, k) + R.range(0, lerp(44, 22, k));
+      this.spacing = lerp(96, 52, k) + R.range(0, lerp(36, 16, k));
+      this.nextY += this.spacing;
     }
   }
 
+  /**
+   * Keep every row passable from the one before: a row's opening must lie within reach of the last
+   * opening. Reach is how far the cat can slide sideways under the canopy across the spacing between
+   * the two rows, with a safety margin. free is the range the cat's centre can pass through.
+   */
+  reach() {
+    return clamp((this.spacing / TUNE.chuteSpeed) * TUNE.moveSpeed * TUNE.chuteSteer * 0.6, 18, 100);
+  }
+  near(lo, hi) {
+    const r = this.reach(), f = this.free;
+    return [Math.max(lo, f[0] - r), Math.min(hi, f[1] + r)];
+  }
+  meets([a, b]) {
+    const r = this.reach();
+    return a <= this.free[1] + r && b >= this.free[0] - r && b - a >= 0;
+  }
+
   spawn(y, k) {
-    const R = this.rng, m = y / PX_PER_M;
+    const R = this.rng, m = y / PX_PER_M, MIN = PLAY_L + 8, MAX = PLAY_R - 8;
     const table = [
       ["ledge", 30],
       ["ac", 18],
-      ["laundry", m > 60 ? 22 : 0],
-      ["pair", m > 150 ? 16 : 0],
-      ["sign", m > 40 ? 12 : 0],
-      ["bird", m > 250 ? 10 + 12 * k : 0],
+      ["laundry", m > 30 ? 22 : 0],
+      ["pair", m > 70 ? 18 : 0],
+      ["sign", m > 20 ? 12 : 0],
+      ["bird", m > 110 ? 10 + 14 * k : 0],
     ];
     let pick = R.next() * table.reduce((s, [, w]) => s + w, 0), type = "ledge";
     for (const [t, w] of table) if ((pick -= w) < 0) { type = t; break; }
-    const side = R.sign();
+    let side = R.sign();
     const fishChance = 0.45;
     if (type === "ledge") {
-      const len = Math.round(R.range(lerp(40, 62, k), lerp(70, 104, k)));
+      let len = Math.round(R.range(lerp(50, 70, k), lerp(84, 108, k)));
+      if (m < 45) len = Math.min(len, 64); // the first rows are a warm-up
+      const freeOf = (sd, l) => (sd < 0 ? [PLAY_L + l + 8, MAX] : [MIN, PLAY_R - l - 8]);
+      if (!this.meets(freeOf(side, len))) side = -side;
+      while (!this.meets(freeOf(side, len)) && len > 30) len -= 6;
       this.ledge(side, len, y);
+      this.free = freeOf(side, len);
       if (R.chance(fishChance)) this.addFish(side < 0 ? PLAY_L + len + R.range(10, 22) : PLAY_R - len - R.range(10, 22), y + R.range(-4, 4));
     } else if (type === "pair") {
-      const gap = Math.round(lerp(60, 36, k)), a = Math.round(R.range(18, PLAY_W - gap - 18));
+      const gap = Math.round(lerp(48, 32, k)), half = gap / 2;
+      const [lo, hi] = this.near(PLAY_L + 18 + half, PLAY_R - 18 - half);
+      const gc = lo <= hi ? R.range(lo, hi) : clamp((this.free[0] + this.free[1]) / 2, PLAY_L + 18 + half, PLAY_R - 18 - half);
+      const a = Math.round(gc - half - PLAY_L);
       this.ledge(-1, a, y);
       this.ledge(1, PLAY_W - gap - a, y);
+      this.free = [PLAY_L + a + 8, PLAY_L + a + gap - 8];
       if (R.chance(fishChance + 0.2)) this.addFish(PLAY_L + a + gap / 2, y + 1);
     } else if (type === "ac") {
       this.ac(side, y);
-      if (R.chance(0.35)) this.ac(-side, y + R.range(24, 40));
+      this.free = side < 0 ? [PLAY_L + 26, MAX] : [MIN, PLAY_R - 26];
+      if (R.chance(0.35)) {
+        this.ac(-side, y + R.range(24, 40));
+        this.free = [PLAY_L + 26, PLAY_R - 26];
+      }
       if (R.chance(fishChance)) this.addFish(R.range(PLAY_L + 30, PLAY_R - 30), y + R.range(30, 50));
     } else if (type === "laundry") {
-      const gap = Math.round(lerp(50, 32, k)), gx = Math.round(R.range(PLAY_L + 14, PLAY_R - 14 - gap));
+      const gap = Math.round(lerp(42, 30, k));
+      const half = gap / 2, [lo, hi] = this.near(PLAY_L + 14 + half, PLAY_R - 14 - half);
+      const gc = lo <= hi ? R.range(lo, hi) : clamp((this.free[0] + this.free[1]) / 2, PLAY_L + 14 + half, PLAY_R - 14 - half);
+      const gx = Math.round(gc - half);
       this.laundry(y, gx, gap);
+      this.free = [gx + 8, gx + gap - 8];
       if (R.chance(fishChance + 0.15)) this.addFish(gx + gap / 2, y + 10);
     } else if (type === "sign") {
+      if (!this.meets(side < 0 ? [PLAY_L + 30, MAX] : [MIN, PLAY_R - 30])) side = -side;
       this.sign(side, y);
+      this.free = side < 0 ? [PLAY_L + 30, MAX] : [MIN, PLAY_R - 30];
       if (R.chance(fishChance)) this.addFish(side < 0 ? PLAY_L + 40 : PLAY_R - 40, y + R.range(6, 24));
     } else if (type === "bird") {
       const n = k > 0.5 && R.chance(0.5) ? 2 : 1;
-      for (let i = 0; i < n; i++) this.bird(y + i * 34, R.sign(), lerp(36, 70, k) + R.range(0, 20));
+      for (let i = 0; i < n; i++) this.bird(y + i * 30, R.sign(), lerp(60, 110, k) + R.range(0, 25));
+      this.free = [MIN, MAX];
     }
+    this.obs[this.obs.length - 1].free = this.free.slice();
   }
 
   ledge(side, len, y) {
@@ -159,7 +200,7 @@ export class World {
   }
 
   bird(y, from, speed) {
-    const x = from < 0 ? -24 : W + 24, vx = -from * speed;
+    const x = from < 0 ? -10 : W + 10, vx = -from * speed;
     const fx = createFx(birdFx, { x, y: 0, flip: vx < 0, seed: this.rng.int(1, 999) });
     this.obs.push({ type: "bird", x, y, vx, fx, rects: [rectOf(x - 8, y - 6, x + 8, y + 4)], top: y - 8, bottom: y + 6 });
   }
@@ -172,8 +213,8 @@ export class World {
     this.t += dt;
     for (const o of this.obs) {
       if (o.type !== "bird") continue;
-      // birds only set off once they are nearly on screen
-      if (o.y - camY > H + 40) continue;
+      // birds set off well before they scroll into view, so they are already crossing when they arrive
+      if (o.y - camY > H + 220) continue;
       o.x += o.vx * dt;
       o.fx.update(dt);
       const r = o.rects[0];
@@ -281,6 +322,11 @@ export class World {
       else if (o.type === "laundry") this.drawLaundry(p, o, camY, t);
       else if (o.type === "sign") this.drawSign(p, o, camY, t);
       else if (o.type === "bird") {
+        // a warning at the wall while it's still off screen
+        if ((o.x < 4 || o.x > W - 4) && Math.floor(t * 8) % 2) {
+          const wx = o.x < 4 ? 4 : W - 7, wy = Math.round(clamp(o.y - camY, 30, H - 12));
+          p.text("!", wx + 1, wy - 3, hex("#ffd24a"), { outline: INK });
+        }
         o.fx.options.x = Math.round(o.x);
         o.fx.options.y = Math.round(o.y - camY);
         o.fx.draw(p.frame);

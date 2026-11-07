@@ -9,7 +9,7 @@ import { W, H, PLAY_L, PX_PER_M, TUNE } from "./config.js";
 import { Cat } from "./cat.js";
 import { World, overlap } from "./world.js";
 import { COATS } from "./sprites.js";
-import { sfx, setWind, isMuted } from "./audio.js";
+import { sfx, setWind, isMuted, duckMusic } from "./audio.js";
 
 const STREAK = hex("#8a82b0");
 const INK = hex("#1b1426"), WHITE = hex("#ffffff"), SOFT = hex("#cfc8e8"), GOLD = hex("#ffd24a"), PINK = hex("#ff6fae");
@@ -76,6 +76,8 @@ export class Game {
     this.deadT = 0;
     this.t = 0;
     this.newBest = false;
+    this.fishCombo = 0;
+    duckMusic(false);
   }
 
   start() {
@@ -97,7 +99,7 @@ export class Game {
     this.coat = COAT_ORDER[i];
     this.cat.setCoat(this.coat);
     store.set("coat", this.coat);
-    sfx.pickup();
+    sfx.coat();
   }
 
   addFx(mod, opts, wx, wy, hud = false) {
@@ -145,6 +147,10 @@ export class Game {
     cat.update(dt, input, k);
     if (!wasOpen && cat.open > 0.5) sfx.chute();
     if (wasOpen && cat.open <= 0.5) sfx.close();
+    if (cat.justSpent) {
+      sfx.tired();
+      this.pop("NO AIR!", cat.x, cat.y - 26, PINK);
+    }
 
     // the dive multiplier: grows while the canopy stays packed, gone the moment it opens
     if (cat.diving && cat.vy > 60) {
@@ -202,21 +208,21 @@ export class Game {
         this.score += pts;
         this.pop("+" + pts, f.x, f.y - 10, hex("#8fd0ff"));
         this.addFx(collectFx, { palette: PAL.ice, seed: this.rng.int(1, 999) }, f.x, f.y + 30);
-        sfx.pickup();
+        sfx.pickup(this.fishCombo++);
       }
 
     // the camera looks further ahead the faster we fall
-    const want = lerp(112, 78, clamp((cat.vy - 40) / 200));
+    const want = lerp(112, 62, clamp((cat.vy - 60) / 320));
     this.camOff += (want - this.camOff) * Math.min(1, dt * 3);
     this.camY = cat.y - this.camOff;
 
-    setWind(clamp((cat.vy - 40) / 240));
+    setWind(clamp((cat.vy - 60) / 380));
     this.updateLines(dt);
   }
 
   updateLines(dt) {
     const v = this.cat.vy, R = this.rng;
-    if (v > 110 && R.chance(clamp((v - 110) / 140) * dt * 40)) this.lines.push({ x: R.int(PLAY_L + 2, W - PLAY_L - 2), y: H + 4, len: R.int(6, 18) });
+    if (v > 200 && R.chance(clamp((v - 200) / 260) * dt * 45)) this.lines.push({ x: R.int(PLAY_L + 2, W - PLAY_L - 2), y: H + 4, len: R.int(6, 18) });
     for (const l of this.lines) l.y -= Math.max(v, 220) * 1.6 * dt;
     this.lines = this.lines.filter((l) => l.y + l.len > 0);
   }
@@ -229,6 +235,7 @@ export class Game {
     this.shake = 5;
     sfx.hit();
     setWind(0);
+    duckMusic(true);
     this.addFx(poofFx, { seed: this.rng.int(1, 999) }, cat.x, cat.y + 10);
     if (o.type === "bird") this.addFx(featherFx, { seed: this.rng.int(1, 999) }, o.x, o.y);
     const s = Math.floor(this.score);
@@ -290,8 +297,9 @@ export class Game {
       p.rect(W - 30, 17, Math.round(24 * u), 1, c);
     }
     if (this.depth < 30 && this.state === "play") {
-      p.text("HOLD MOUSE: CHUTE", W / 2, H - 30, WHITE, { align: "center", outline: INK });
-      p.text("A D: MOVE", W / 2, H - 22, SOFT, { align: "center", outline: INK });
+      p.text("HOLD MOUSE: CHUTE", W / 2, H - 38, WHITE, { align: "center", outline: INK });
+      p.text("A D: MOVE", W / 2, H - 30, SOFT, { align: "center", outline: INK });
+      p.text("CHUTE RUNS OUT. DIVE TO REFILL", W / 2, H - 22, GOLD, { align: "center", outline: INK });
     }
   }
 
@@ -302,7 +310,8 @@ export class Game {
     p.text("HOLD MOUSE: OPEN CHUTE", W / 2, 198, SOFT, { align: "center", outline: INK });
     p.text("LET GO: DIVE FAST", W / 2, 206, SOFT, { align: "center", outline: INK });
     p.text("A D OR ARROWS: MOVE", W / 2, 214, SOFT, { align: "center", outline: INK });
-    p.text("DIVE LONGER = BIGGER x", W / 2, 228, GOLD, { align: "center", outline: INK });
+    p.text("DIVE LONGER = BIGGER x", W / 2, 224, GOLD, { align: "center", outline: INK });
+    p.text("CHUTE RUNS OUT. DIVE TO REFILL", W / 2, 232, GOLD, { align: "center", outline: INK });
     p.text("< " + COATS[this.coat].name + " >", W / 2, 248, WHITE, { align: "center", outline: INK });
     p.text("A D: CHANGE CAT", W / 2, 256, SOFT, { align: "center", outline: INK });
     if (this.best > 0) p.text("BEST " + this.best, W / 2, 274, GOLD, { align: "center", outline: INK });
