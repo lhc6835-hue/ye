@@ -3,8 +3,11 @@
 // the music streams from an <audio> element.
 
 const BASE = "assets/audio/";
+// the build stamps a version on every asset URL so a new deploy never plays a stale cached file
+const V = typeof __VERSION__ !== "undefined" ? __VERSION__ : "dev";
+const url = (name) => BASE + name + ".mp3?v=" + V;
 const FILES = ["jump", "chute", "close", "near", "pickup", "mult", "mult-lost", "tired", "hit", "best", "coat", "wind"];
-const MUSIC_VOL = 0.55, MUSIC_DUCK = 0.6;
+const MUSIC_VOL = 1, MUSIC_DUCK = 0.7, SFX_VOL = 0.5;
 
 let ctx = null, master = null, sfxBus = null, buffers = {}, windSrc = null, windGain = null, music = null, musicGain = null;
 let muted = false;
@@ -14,7 +17,7 @@ try {
 
 function load() {
   for (const name of FILES)
-    fetch(BASE + name + ".mp3")
+    fetch(url(name))
       .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(r.status)))
       .then((b) => ctx.decodeAudioData(b))
       .then((buf) => {
@@ -48,14 +51,21 @@ export function unlock() {
     }
     master = ctx.createGain();
     master.gain.value = muted ? 0 : 1;
-    master.connect(ctx.destination);
+    // a limiter on the way out keeps loud music plus a crash from clipping
+    const limit = ctx.createDynamicsCompressor();
+    limit.threshold.value = -6;
+    limit.knee.value = 4;
+    limit.ratio.value = 12;
+    limit.attack.value = 0.003;
+    limit.release.value = 0.2;
+    master.connect(limit).connect(ctx.destination);
     sfxBus = ctx.createGain();
-    sfxBus.gain.value = 0.8;
+    sfxBus.gain.value = SFX_VOL;
     sfxBus.connect(master);
     load();
     // the music streams from an <audio> element but plays through the same mixer as the effects, so
     // mute and volume work everywhere (iOS ignores an element's own volume)
-    music = new Audio(BASE + "music.mp3");
+    music = new Audio(url("music"));
     music.loop = true;
     music.preload = "auto";
     musicGain = ctx.createGain();
