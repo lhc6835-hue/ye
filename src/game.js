@@ -49,6 +49,7 @@ export class Game {
     this.best = store.get("best", 0);
     this.coat = "ginger";
     this.runs = 0;
+    this.touch = typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
     this.reset();
   }
 
@@ -101,6 +102,7 @@ export class Game {
 
   update(dt, input) {
     this.t += dt;
+    if (input.touch) this.touch = true;
     for (const f of this.fx) f.fx.update(dt);
     this.fx = this.fx.filter((f) => !f.fx.done());
     for (const q of this.pops) q.t += dt;
@@ -283,8 +285,9 @@ export class Game {
       p.rect(W - 30, 17, Math.round(24 * u), 1, c);
     }
     if (this.depth < 30 && this.state === "play") {
-      p.text("HOLD MOUSE: CHUTE", W / 2, H - 38, WHITE, { align: "center", outline: INK });
-      p.text("A D: MOVE", W / 2, H - 30, SOFT, { align: "center", outline: INK });
+      const touch = this.touch;
+      p.text(touch ? "HOLD SCREEN: CHUTE" : "HOLD MOUSE: CHUTE", W / 2, H - 38, WHITE, { align: "center", outline: INK });
+      p.text(touch ? "TILT PHONE: MOVE" : "A D: MOVE", W / 2, H - 30, SOFT, { align: "center", outline: INK });
       p.text("CHUTE RUNS OUT. DIVE TO REFILL", W / 2, H - 22, GOLD, { align: "center", outline: INK });
     }
   }
@@ -292,14 +295,15 @@ export class Game {
   drawTitle(p) {
     const bob = Math.round(Math.sin(this.t * 2) * 1.5);
     p.text("CATCHUTE", W / 2, 148 + bob, GOLD, { font: "big", scale: 2, align: "center", outline: INK, shadow: hex("#8e1d2e") });
-    if (Math.floor(this.t * 2) % 2 === 0) p.text("CLICK TO JUMP", W / 2, 178, WHITE, { align: "center", outline: INK });
-    p.text("HOLD MOUSE: OPEN CHUTE", W / 2, 198, SOFT, { align: "center", outline: INK });
+    const touch = this.touch;
+    if (Math.floor(this.t * 2) % 2 === 0) p.text(touch ? "TAP TO JUMP" : "CLICK TO JUMP", W / 2, 178, WHITE, { align: "center", outline: INK });
+    p.text(touch ? "HOLD SCREEN: OPEN CHUTE" : "HOLD MOUSE: OPEN CHUTE", W / 2, 198, SOFT, { align: "center", outline: INK });
     p.text("LET GO: DIVE FAST", W / 2, 206, SOFT, { align: "center", outline: INK });
-    p.text("A D OR ARROWS: MOVE", W / 2, 214, SOFT, { align: "center", outline: INK });
+    p.text(touch ? "TILT PHONE: MOVE" : "A D OR ARROWS: MOVE", W / 2, 214, SOFT, { align: "center", outline: INK });
     p.text("DIVE LONGER = BIGGER x", W / 2, 224, GOLD, { align: "center", outline: INK });
     p.text("CHUTE RUNS OUT. DIVE TO REFILL", W / 2, 232, GOLD, { align: "center", outline: INK });
     if (this.best > 0) p.text("BEST " + this.best, W / 2, 274, GOLD, { align: "center", outline: INK });
-    p.text(isMuted() ? "M: SOUND OFF" : "M: SOUND ON", W / 2, H - 10, SOFT, { align: "center", outline: INK });
+    if (!touch) p.text(isMuted() ? "M: SOUND OFF" : "M: SOUND ON", W / 2, H - 10, SOFT, { align: "center", outline: INK });
   }
 
   drawResult(p) {
@@ -316,6 +320,6 @@ export class Game {
     p.text("BEST", x0 + 12, y0 + 66, SOFT);
     p.text(String(this.best), x0 + w - 12, y0 + 66, GOLD, { align: "right" });
     if (this.newBest && Math.floor(this.t * 4) % 2 === 0) p.text("NEW BEST!", W / 2, y0 + 80, GOLD, { align: "center", outline: INK });
-    if (this.deadT > 0.45) p.text("CLICK TO RETRY", W / 2, y0 + 96, Math.sin(this.t * 6) > -0.3 ? WHITE : SOFT, { align: "center" });
+    if (this.deadT > 0.45) p.text(this.touch ? "TAP TO RETRY" : "CLICK TO RETRY", W / 2, y0 + 96, Math.sin(this.t * 6) > -0.3 ? WHITE : SOFT, { align: "center" });
   }
 }

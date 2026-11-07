@@ -66,11 +66,16 @@ export class Cat {
     else this.vy += (target - this.vy) * Math.min(1, TUNE.chuteDrag * dt);
 
     // steering
-    const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+    const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0), tilt = input.tilt || 0;
+    const max = TUNE.moveSpeed * lerp(1, TUNE.chuteSteer, this.open);
     if (dir) {
       this.facing = dir;
-      const max = TUNE.moveSpeed * lerp(1, TUNE.chuteSteer, this.open);
       this.vx = clamp(this.vx + dir * TUNE.moveAccel * dt, -max, max);
+    } else if (tilt) {
+      // the phone's lean sets the speed: a little lean drifts, a big one goes flat out
+      const want = tilt * max, step = TUNE.moveAccel * dt;
+      this.vx += clamp(want - this.vx, -step, step);
+      if (Math.abs(this.vx) > 8) this.facing = Math.sign(this.vx);
     } else {
       const b = TUNE.moveBrake * dt;
       this.vx = Math.abs(this.vx) <= b ? 0 : this.vx - Math.sign(this.vx) * b;
