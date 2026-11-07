@@ -23,6 +23,10 @@
 
 ## 실행
 
+바로 플레이: https://lhc6835-hue.github.io/ye/
+
+`main`이나 `claude/tender-goldberg-xoww3e` 브랜치에 푸시하면 `.github/workflows/pages.yml`이 빌드해서 GitHub Pages에 자동으로 올려요.
+
 빌드된 한 파일짜리 게임: `dist/catchute.html`을 브라우저로 열면 바로 플레이돼요.
 
 개발할 때는 ES 모듈이라 로컬 서버가 필요해요.
