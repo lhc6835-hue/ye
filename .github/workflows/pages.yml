@@ -1,4 +1,4 @@
-# Builds the single-file game and publishes it to GitHub Pages.
+# Builds both games and publishes them to GitHub Pages (Catchute at the root, Glass Fruit under /glass/).
 name: Deploy to GitHub Pages
 
 on:
@@ -29,6 +29,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      # the glass fruit game lives in its own folder and is served under /glass/
+      - run: npm ci && npm run build && cp -r dist ../dist/glass
+        working-directory: glass
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
