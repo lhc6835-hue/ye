@@ -399,7 +399,7 @@ export class Game {
     }
     this.mode = "cut";
     this.Kvel.set(0, 0, 0);
-    sfx.impact("glass", 0.25, this.cut.pitch * 1.3, this.pan(Kc));
+    sfx.impact("glass", 0.12, this.cut.pitch, this.pan(Kc));
     return true;
   }
 
@@ -438,7 +438,7 @@ export class Game {
       let vt = (Math.max(0, gap - 0.0025) * 18) / (0.45 + 1.5 * resist);
       vt = Math.min(vt, 1.4);
       if (c.hitch > 0) {
-        vt *= 0.55;
+        vt *= 0.72;
         c.hitch -= dt;
       }
       c.v += (vt - c.v) * (1 - Math.exp(-dt * 24));
@@ -450,18 +450,16 @@ export class Game {
       }
       c.s += ds;
       c.grainAcc += ds;
+      // a continuous soft "sss" that follows the blade: louder with more glass on the edge
+      sfx.texture(THREE.MathUtils.clamp(c.v / 0.2, 0, 1) * (0.35 + 0.65 * chordN), Math.min(1, c.v / 0.45), this.pan(Kcur));
       if (c.grainAcc > c.nextGrain) {
+        // now and then a little grit, with a matching micro-hitch in the blade
         c.grainAcc = 0;
-        c.nextGrain = 0.0014 + Math.random() * 0.0028;
+        c.nextGrain = 0.004 + Math.random() * 0.007;
         const amt = THREE.MathUtils.clamp(c.v / 0.22, 0.15, 1) * (0.45 + 0.55 * chordN);
         sfx.grain(amt, c.pitch, this.pan(Kcur));
-        c.hitch = 0.016 + Math.random() * 0.012;
-        if (amt > 0.45) this.hooks.haptic(5);
-      }
-      c.scrapeT -= dt;
-      if (c.v > 0.06 && c.scrapeT <= 0) {
-        c.scrapeT = 0.12;
-        sfx.scrape(Math.min(1, c.v / 0.4), this.pan(Kcur));
+        c.hitch = 0.012 + Math.random() * 0.01;
+        if (amt > 0.5) this.hooks.haptic(4);
       }
       if (c.s >= c.sEnd) {
         this.finishCut();
@@ -507,6 +505,7 @@ export class Game {
   finishCut() {
     const c = this.cut;
     const parent = c.chunk;
+    sfx.textureStop();
     this.placeCutPieces();
     this.scene.updateMatrixWorld();
     const pb = parent.body;
@@ -554,6 +553,7 @@ export class Game {
   }
 
   abortCut() {
+    sfx.textureStop();
     const c = this.cut;
     const parent = c.chunk;
     for (const p of [c.A, c.B]) {

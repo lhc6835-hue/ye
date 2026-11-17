@@ -2,20 +2,17 @@
 
 ## Sound effects
 
-Every sound was trimmed of leading/trailing silence, high-passed to remove rumble, peak-normalised to -1 dBFS and re-encoded as mono mp3 (VBR q2). In the game they are further pitched, filtered and cut into grains.
+Every sound was trimmed of silence, low-passed (and high-passed to remove rumble) so nothing is shrill, peak-normalised to -1 dBFS and re-encoded as mono mp3 (VBR q2). In the game they are cut into overlapping grains, filtered further and mixed by the blade's speed.
 
 | Files | Original | Author | License | Source |
 |---|---|---|---|---|
-| crunch-1, crunch-2, crunch-3 | Crunch sounds (cucumber): crunch_1, crunch_2, crunch_6 | cogitollc | CC0 | https://opengameart.org/content/crunch-sounds-cucumber |
-| crunch-4 | Crunch sounds (burnt toast): crunch_9 | cogitollc | CC0 | https://opengameart.org/content/crunch-sounds-burnt-toast |
-| ting-1, ting-2, ting-4, clink-2 | 100 CC0 SFX: glass_04, glass_05, glass_01, glass_02 | rubberduck | CC0 | https://opengameart.org/content/100-cc0-sfx |
-| ting-3, clink-1 | 100 CC0 SFX #2: sfx100v2_glass_04, sfx100v2_glass_01 | rubberduck | CC0 | https://opengameart.org/content/100-cc0-sfx-2 |
-| clink-3 | 75 CC0 breaking/falling/hit sfx: bfh1_glass_hit_01 | rubberduck | CC0 | https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx |
-| thud-0..4, thudm-0..2, wood-0..4 | Impact Sounds: impactGlass_light, impactGlass_medium, impactWood_light | Kenney | CC0 | https://kenney.nl/assets/impact-sounds |
-| slice-1, slice-2 | RPG Audio: knifeSlice, knifeSlice2 | Kenney | CC0 | https://kenney.nl/assets/rpg-audio |
-| shing-1, shing-2 | Knife sharpening slice 1, 2 | Iwan Gabovitch (qubodup) | CC-BY 3.0 | https://opengameart.org/content/knife-sharpening-slice-1 , https://opengameart.org/content/knife-sharpening-slice-2 |
-
-`shing-1` and `shing-2` are licensed CC-BY 3.0 (https://creativecommons.org/licenses/by/3.0/): "Knife sharpening slice" by Iwan Gabovitch, changed as described above.
+| tex-1, tex-2, tex-3 | Scrapes: scrape-5, scrape-8, scrape-7 | Jordan Irwin (AntumDeluge), made for Stendhal | CC0 | https://opengameart.org/content/scrapes |
+| grain-1 | 7 Eating Crunches: crunch.5 | starninjas | CC0 | https://opengameart.org/content/7-eating-crunches |
+| grain-2, grain-3 | 5 break, crunch impacts: impactcrunch03, impactcrunch04 | qubodup (independent.nu ljudbank) | CC0 | https://opengameart.org/content/5-break-crunch-impacts |
+| snow-0, snow-2, snow-4 | Impact Sounds: footstep_snow_000, 002, 004 | Kenney | CC0 | https://kenney.nl/assets/impact-sounds |
+| wood-0..4 | Impact Sounds: impactWood_light_000..004 | Kenney | CC0 | https://kenney.nl/assets/impact-sounds |
+| plank-0, plank-2 | Impact Sounds: impactPlank_medium_000, 002 | Kenney | CC0 | https://kenney.nl/assets/impact-sounds |
+| slice-1 | RPG Audio: knifeSlice | Kenney | CC0 | https://kenney.nl/assets/rpg-audio |
 
 ## Textures
 
