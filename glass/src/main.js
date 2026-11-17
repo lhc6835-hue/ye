@@ -37,6 +37,7 @@ async function start() {
   await game.warmUp(stage.renderer, stage.camera);
   // test hook: screen position of the first whole fruit
   window.__sfxLoaded = () => sfx.loadedCount();
+  window.__chunks = () => game.chunks.map((c) => (c.whole ? "whole" : c.dissolving ? "vanishing" : "piece")).join(",");
   window.__fruitScreen = () => {
     const c = game.chunks.find((x) => x.whole);
     if (!c) return null;

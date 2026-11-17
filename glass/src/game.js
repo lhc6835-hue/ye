@@ -23,6 +23,8 @@ THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 const CRUMB_RADIUS = 0.0105; // pieces smaller than this can't be cut any more; the blade pushes them
 const MAX_PIECES = 24;
+const PIECE_LIFE = 700; // ms a cut piece stays to fall apart before it quietly vanishes
+const VANISH = 450; // ms the vanish takes
 const TILT = 0.5; // how far the blade is turned so its face catches the light (rad)
 const UP = new THREE.Vector3(0, 1, 0);
 const tmpV = new THREE.Vector3(), tmpV2 = new THREE.Vector3(), tmpQ = new THREE.Quaternion(), tmpM = new THREE.Matrix4();
@@ -245,7 +247,7 @@ export class Game {
       const ray = this.raycaster.ray;
       let best = null, bestD = Infinity;
       for (const c of this.chunks) {
-        if (c.dissolving) continue;
+        if (c.dissolving || c.leaving) continue;
         const cw = c.centroidWorld(new THREE.Vector3());
         const dist = ray.distanceToPoint(cw) - c.mass.radius;
         if (dist < 0.05 && dist < bestD) {
@@ -288,7 +290,7 @@ export class Game {
     const dist = move.length();
     if (dist < 1e-6 || !this.pointer.active) return;
     const steps = Math.min(16, Math.ceil(dist / 0.0018));
-    const cands = this.chunks.filter((c) => !c.crumb && !c.dissolving && !this.inside.has(c) && !(c.cooldown > this.time));
+    const cands = this.chunks.filter((c) => !c.crumb && !c.dissolving && !c.leaving && !this.inside.has(c) && !(c.cooldown > this.time));
     if (!cands.length) return;
     const P = new THREE.Vector3();
     for (let i = 1; i <= steps; i++) {
@@ -534,6 +536,9 @@ export class Game {
       const ang = new THREE.Vector3(w0.x, w0.y, w0.z).addScaledVector(eW, sgn * (0.8 + Math.random() * 0.8) * (0.03 / Math.max(0.012, p.mass.radius)));
       p.body = this.physics.addBody(p.solid.pos, pos, quat, { crumb: p.crumb, linvel: lin, angvel: ang });
       p.mesh.material = [p.def.skinMat, p.def.capMat];
+      // cut pieces show the split, then go: no rolling and rattling around the board
+      p.leaving = true;
+      p.vanishAt = performance.now() + PIECE_LIFE;
       this.chunks.push(p);
     }
     this.removeChunk(parent);
@@ -585,7 +590,10 @@ export class Game {
 
   onImpact(body, dv, surface) {
     const c = this.chunks.find((x) => x.body === body);
-    if (!c) return;
+    if (!c || c.dissolving) return;
+    // one soft landing per body: bounces and knocks after that stay silent
+    if (c.landed || (c.leaving && surface === "glass")) return;
+    c.landed = true;
     const pitch = Math.min(1.9, Math.max(0.75, 0.036 / Math.max(0.006, c.mass.radius)));
     sfx.impact(surface, dv, pitch, this.pan(c.group.position));
   }
@@ -608,7 +616,7 @@ export class Game {
       const lift = Math.max(0, h - r * 1.1);
       const sz = r * (1.05 + lift * 6);
       m.scale.set(sz, sz, 1);
-      const shrink = c.dissolving ? Math.max(0, 1 - (performance.now() - c.dissolving) / 400) : 1;
+      const shrink = c.dissolving ? Math.max(0, 1 - (performance.now() - c.dissolving) / VANISH) : 1;
       m.material.opacity = 0.5 * Math.max(0, 1 - lift / 0.12) * Math.min(1, r / 0.02) * shrink;
       m.visible = true;
     }
@@ -628,28 +636,24 @@ export class Game {
       const p = c.group.position;
       if (c.galleryOnly) continue;
       const far = Math.abs(p.x) > 0.7 || Math.abs(p.z) > 0.7 || p.y < -0.2;
-      if (extra > 0 || far) {
+      if (extra > 0 || far || (c.vanishAt && now > c.vanishAt)) {
         this.dissolve(c);
         extra--;
       }
     }
     for (const c of [...this.chunks]) {
       if (!c.dissolving) continue;
-      const t = (now - c.dissolving) / 420;
+      const t = (now - c.dissolving) / VANISH;
       const s = Math.max(0.001, 1 - smooth(t));
       c.node.scale.setScalar(s);
       if (t >= 1) this.removeChunk(c);
     }
   }
 
+  /** Shrinks a piece away in silence; it keeps falling naturally while it goes. */
   dissolve(c) {
     c.dissolving = performance.now();
-    if (c.body) {
-      // freeze it where it is while it melts
-      this.physics.remove(c.body);
-      c.body = null;
-    }
-    sfx.sparkle(this.pan(c.group.position));
+    this.inside.delete(c);
   }
 
   spawn() {
@@ -667,7 +671,7 @@ export class Game {
       const x = (Math.random() - 0.5) * ax * (i < 6 ? 0.4 : 1);
       const z = (Math.random() - 0.5) * az * (i < 6 ? 0.4 : 1);
       let md = 1;
-      for (const c of this.chunks) md = Math.min(md, Math.hypot(c.group.position.x - x, c.group.position.z - z) - c.mass.radius);
+      for (const c of this.chunks) if (!c.leaving && !c.dissolving) md = Math.min(md, Math.hypot(c.group.position.x - x, c.group.position.z - z) - c.mass.radius);
       const score = Math.min(md, 0.09) - 0.25 * Math.hypot(x, z);
       if (score > bestScore) {
         bestScore = score;
