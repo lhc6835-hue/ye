@@ -33,7 +33,7 @@ const EQ = [
   ["highshelf", 7000, 5, 0],
 ];
 
-const AIR = 1.5; // level of the top-octave grit under the cut texture
+const AIR = 1.1; // level of the top-octave grit under the cut texture
 
 let ctx = null, master = null, dry = null, wet = null, echo = null, volume = 0.8;
 const buf = {}; // name -> AudioBuffer
@@ -259,7 +259,7 @@ function once(key, gap) {
 }
 
 // ---------- the blade moving through glass: a continuous texture ----------
-let texNext = 0, texLevel = 0, texBright = 0, texPan = 0, texSide = 1;
+let texNext = 0, texLevel = 0, texBright = 0, texPan = 0, texSide = 1, stroke = 0;
 /** Call every frame while the blade moves through. level 0..1 (loudness), speed 0..1 (brightness) */
 export function texture(level, speed, pan = 0) {
   if (!ctx || ctx.state !== "running") return;
@@ -275,14 +275,16 @@ export function texture(level, speed, pan = 0) {
     if (!b) break;
     play(name, {
       at: texNext, offset: 0.05 + Math.random() * Math.max(0.01, b.duration - 0.3), dur: 0.16, attack: 0.06, release: 0.07,
-      rate: 0.9 + Math.random() * 0.08, gain: 0.55 * texLevel, lp: 11000 + 9000 * texBright, hp: 120, pan: texPan + 0.28 * (texSide = -texSide), wet: 0.25,
+      rate: 0.66 + Math.random() * 0.08, gain: 0.55 * texLevel * (0.7 + 0.7 * stroke), lp: 11000 + 9000 * texBright, hp: 120, pan: texPan + 0.28 * (texSide = -texSide), wet: 0.25,
     });
-    play("air", { at: texNext, offset: Math.random() * 1.7, dur: 0.16, attack: 0.06, release: 0.07, gain: AIR * texLevel * (0.6 + 0.4 * texBright), hp: 6500, pan: texPan + (Math.random() - 0.5), wet: 0.15 });
+    play("air", { at: texNext, offset: Math.random() * 1.7, dur: 0.16, attack: 0.06, release: 0.07, gain: AIR * texLevel * (0.6 + 0.4 * texBright) * (0.8 + 0.4 * stroke), hp: 4800, pan: texPan + (Math.random() - 0.5), wet: 0.15 });
     texNext += 0.07;
+    stroke *= 0.55; // each grit grain gives the texture a short push: "seo-geok, seo-geok"
   }
 }
 export function textureStop() {
   texLevel = 0;
+  stroke = 0;
   texNext = 0;
 }
 
@@ -292,16 +294,17 @@ export function grain(amount, pitch = 1, pan = 0) {
   const name = pick(GROUPS.grain);
   const on = onsets[name];
   if (!on) return;
-  play(name, { offset: pick(on), dur: 0.07 + Math.random() * 0.05, attack: 0.006, rate: (0.85 + Math.random() * 0.12) * Math.sqrt(pitch), gain: 0.12 + 0.28 * amount, pan, wet: 0.3 });
+  play(name, { offset: pick(on), dur: 0.1 + Math.random() * 0.06, attack: 0.006, rate: (0.62 + Math.random() * 0.12) * Math.sqrt(pitch), gain: 0.16 + 0.34 * amount, pan, wet: 0.3 });
+  stroke = Math.min(1, stroke + 0.6 + 0.4 * amount);
 }
 
 /** The edge settles in and gives: a soft, dense press. */
 export function bite(pitch = 1, pan = 0) {
   if (!ctx) return;
   const s = pick(GROUPS.snow);
-  play(s, { offset: (onsets[s] || [0])[0], dur: 0.2, attack: 0.008, rate: 0.95 * Math.sqrt(pitch), gain: 0.75, lp: 9000, pan, wet: 0.3 });
+  play(s, { offset: (onsets[s] || [0])[0], dur: 0.22, attack: 0.008, rate: 0.78 * Math.sqrt(pitch), gain: 0.8, lp: 9000, pan, wet: 0.3 });
   const g = pick(GROUPS.grain);
-  play(g, { offset: (onsets[g] || [0])[0], dur: 0.09, attack: 0.005, rate: 0.9, gain: 0.3, lp: 8000, pan, wet: 0.3 });
+  play(g, { offset: (onsets[g] || [0])[0], dur: 0.11, attack: 0.005, rate: 0.7, gain: 0.32, lp: 8000, pan, wet: 0.3 });
   metalClick(0.85, pan);
   tinkle(0.7, pan);
 }
@@ -332,7 +335,7 @@ export function through(speed, pitch = 1, pan = 0) {
   if (!ctx) return;
   play(pick(GROUPS.slice), { gain: 0.1 + Math.min(0.18, speed * 0.3), rate: 0.9, lp: 7000, pan, wet: 0.3 });
   const s = pick(GROUPS.snow);
-  play(s, { offset: (onsets[s] || [0])[0], dur: 0.12, rate: 1.05 * Math.sqrt(pitch), gain: 0.35, lp: 8000, pan, wet: 0.2 });
+  play(s, { offset: (onsets[s] || [0])[0], dur: 0.14, rate: 0.85 * Math.sqrt(pitch), gain: 0.35, lp: 8000, pan, wet: 0.2 });
   // a few shards of sparkle as the halves let go
   for (let i = 0; i < 3; i++) tinkle(0.55 - i * 0.12, pan, i * 0.045 + Math.random() * 0.03);
   metalClick(0.45, pan);
