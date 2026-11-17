@@ -39,7 +39,7 @@ window.runDemo = async () => {
       acc += v * 0.016;
       if (acc > next) {
         acc = 0;
-        next = 0.004 + Math.random() * 0.007;
+        next = 0.003 + Math.random() * 0.005;
         sfx.grain(Math.min(1, v / 0.22) * (0.45 + 0.55 * chord), 1, 0);
       }
       await wait(16);

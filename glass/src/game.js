@@ -457,7 +457,7 @@ export class Game {
       if (c.grainAcc > c.nextGrain) {
         // now and then a little grit, with a matching micro-hitch in the blade
         c.grainAcc = 0;
-        c.nextGrain = 0.004 + Math.random() * 0.007;
+        c.nextGrain = 0.003 + Math.random() * 0.005;
         const amt = THREE.MathUtils.clamp(c.v / 0.22, 0.15, 1) * (0.45 + 0.55 * chordN);
         sfx.grain(amt, c.pitch, this.pan(Kcur));
         c.hitch = 0.012 + Math.random() * 0.01;

@@ -1,6 +1,8 @@
 // Sound: recorded CC0 samples (see assets/CREDITS.md) played through WebAudio.
 //
 // The aim is a soft, dense cut: like slicing a solid glass block, with no ringing glass at all.
+// The overall tone is matched to a reference glass-cutting ASMR video (cut moments only, clinks
+// left out): weight down low, little mud, a solid core near 800 Hz and smooth, airy highs.
 //  - While the blade moves, a continuous "sss" texture plays: overlapping grains from scrape
 //    recordings, darker and quieter when the blade is slow, a little brighter when it is fast.
 //  - Now and then a warm, low crunch grain adds a hint of grit.
@@ -18,6 +20,16 @@ const GROUPS = {
   slice: ["slice-1"],
 };
 
+// [type, frequency, gain dB, Q]
+const EQ = [
+  ["lowshelf", 95, 7, 0],
+  ["peaking", 300, -5, 0.8],
+  ["peaking", 820, 8, 1.4],
+  ["highshelf", 7000, 5, 0],
+];
+
+const AIR = 1.5; // level of the top-octave grit under the cut texture
+
 let ctx = null, master = null, dry = null, wet = null, volume = 0.8;
 const buf = {}; // name -> AudioBuffer
 const onsets = {}; // name -> [seconds]
@@ -25,7 +37,7 @@ const recent = new Map();
 const listeners = [];
 
 export const isUnlocked = () => !!ctx && ctx.state === "running";
-export const loadedCount = () => Object.keys(buf).length;
+export const loadedCount = () => Object.keys(buf).filter((k) => k !== "air").length;
 /** Test hook: the stream the demo recorder listens to. */
 export const __stream = () => ctx.destination.stream;
 export function onUnlock(fn) {
@@ -49,6 +61,23 @@ function impulse(seconds, decay) {
     }
   }
   return ir;
+}
+
+/**
+ * Fine, toneless grit for the top octave (the recordings fall off above 8 kHz): soft noise sprinkled
+ * with tiny clicks, high-passed when played so it reads as air and texture, never as a ring.
+ */
+function airBuffer() {
+  const len = ctx.sampleRate * 2;
+  const b = ctx.createBuffer(1, len, ctx.sampleRate);
+  const d = b.getChannelData(0);
+  let click = 0;
+  for (let i = 0; i < len; i++) {
+    if (Math.random() < 0.0012) click = (Math.random() * 2 - 1) * 0.9;
+    d[i] = (Math.random() * 2 - 1) * 0.18 + click;
+    click *= 0.55;
+  }
+  return b;
 }
 
 /** Start times of the transients in a recording, so grains begin on an actual crunch. */
@@ -99,28 +128,35 @@ export function unlock() {
     }
     master = ctx.createGain();
     master.gain.value = volume;
-    // take the edge off anything left up top, then a gentle limiter
-    const shelf = ctx.createBiquadFilter();
-    shelf.type = "highshelf";
-    shelf.frequency.value = 5500;
-    shelf.gain.value = -6;
+    // tone shaping toward the reference (see EQ), then a gentle limiter
+    const eq = EQ.map(([type, f, gain, q]) => {
+      const b = ctx.createBiquadFilter();
+      b.type = type;
+      b.frequency.value = f;
+      b.gain.value = gain;
+      if (q) b.Q.value = q;
+      return b;
+    });
+    eq.reduce((a, b) => a.connect(b));
     const limiter = ctx.createDynamicsCompressor();
     limiter.threshold.value = -10;
     limiter.knee.value = 10;
     limiter.ratio.value = 6;
     limiter.attack.value = 0.004;
     limiter.release.value = 0.2;
-    master.connect(shelf).connect(limiter).connect(ctx.destination);
+    master.connect(eq[0]);
+    eq[eq.length - 1].connect(limiter).connect(ctx.destination);
     dry = ctx.createGain();
     dry.connect(master);
     const verb = ctx.createConvolver();
     verb.buffer = impulse(0.45, 2.6);
     const pre = ctx.createBiquadFilter();
     pre.type = "lowpass";
-    pre.frequency.value = 2200;
+    pre.frequency.value = 5000;
     wet = ctx.createGain();
     wet.gain.value = 0.1;
     wet.connect(pre).connect(verb).connect(master);
+    buf.air = airBuffer();
     load();
   }
   if (ctx.state !== "running") ctx.resume().then(() => listeners.forEach((f) => f()));
@@ -204,8 +240,9 @@ export function texture(level, speed, pan = 0) {
     if (!b) break;
     play(name, {
       at: texNext, offset: 0.05 + Math.random() * Math.max(0.01, b.duration - 0.3), dur: 0.16, attack: 0.06, release: 0.07,
-      rate: 0.82 + Math.random() * 0.1, gain: 0.55 * texLevel, lp: 1500 + 2000 * texBright, hp: 120, pan: texPan, wet: 0.25,
+      rate: 0.9 + Math.random() * 0.08, gain: 0.55 * texLevel, lp: 11000 + 9000 * texBright, hp: 120, pan: texPan, wet: 0.25,
     });
+    play("air", { at: texNext, offset: Math.random() * 1.7, dur: 0.16, attack: 0.06, release: 0.07, gain: AIR * texLevel * (0.6 + 0.4 * texBright), hp: 6500, pan: texPan, wet: 0.15 });
     texNext += 0.07;
   }
 }
@@ -220,24 +257,24 @@ export function grain(amount, pitch = 1, pan = 0) {
   const name = pick(GROUPS.grain);
   const on = onsets[name];
   if (!on) return;
-  play(name, { offset: pick(on), dur: 0.07 + Math.random() * 0.05, attack: 0.006, rate: (0.85 + Math.random() * 0.12) * Math.sqrt(pitch), gain: 0.12 + 0.28 * amount, lp: 2600, pan, wet: 0.3 });
+  play(name, { offset: pick(on), dur: 0.07 + Math.random() * 0.05, attack: 0.006, rate: (0.85 + Math.random() * 0.12) * Math.sqrt(pitch), gain: 0.12 + 0.28 * amount, pan, wet: 0.3 });
 }
 
 /** The edge settles in and gives: a soft, dense press. */
 export function bite(pitch = 1, pan = 0) {
   if (!ctx) return;
   const s = pick(GROUPS.snow);
-  play(s, { offset: (onsets[s] || [0])[0], dur: 0.2, attack: 0.008, rate: 0.95 * Math.sqrt(pitch), gain: 0.75, lp: 3000, pan, wet: 0.3 });
+  play(s, { offset: (onsets[s] || [0])[0], dur: 0.2, attack: 0.008, rate: 0.95 * Math.sqrt(pitch), gain: 0.75, lp: 9000, pan, wet: 0.3 });
   const g = pick(GROUPS.grain);
-  play(g, { offset: (onsets[g] || [0])[0], dur: 0.09, attack: 0.005, rate: 0.8, gain: 0.3, lp: 2200, pan, wet: 0.3 });
+  play(g, { offset: (onsets[g] || [0])[0], dur: 0.09, attack: 0.005, rate: 0.9, gain: 0.3, lp: 8000, pan, wet: 0.3 });
 }
 
 /** The blade comes out the other side: a soft breath of air. */
 export function through(speed, pitch = 1, pan = 0) {
   if (!ctx) return;
-  play(pick(GROUPS.slice), { gain: 0.1 + Math.min(0.18, speed * 0.3), rate: 0.85, lp: 2200, pan, wet: 0.3 });
+  play(pick(GROUPS.slice), { gain: 0.1 + Math.min(0.18, speed * 0.3), rate: 0.9, lp: 7000, pan, wet: 0.3 });
   const s = pick(GROUPS.snow);
-  play(s, { offset: (onsets[s] || [0])[0], dur: 0.12, rate: 1.05 * Math.sqrt(pitch), gain: 0.35, lp: 2500, pan, wet: 0.2 });
+  play(s, { offset: (onsets[s] || [0])[0], dur: 0.12, rate: 1.05 * Math.sqrt(pitch), gain: 0.35, lp: 8000, pan, wet: 0.2 });
 }
 
 /** The edge meets the board: a dull "tuk". */

@@ -2,7 +2,7 @@
 
 ## Sound effects
 
-Every sound was trimmed of silence, low-passed (and high-passed to remove rumble) so nothing is shrill, peak-normalised to -1 dBFS and re-encoded as mono mp3 (VBR q2). In the game they are cut into overlapping grains, filtered further and mixed by the blade's speed.
+Every sound was trimmed of silence, low-passed (and high-passed to remove rumble) so nothing is shrill, peak-normalised to -1 dBFS and re-encoded as mono mp3 (VBR q2). In the game they are cut into overlapping grains, filtered and mixed by the blade's speed. The top-octave "air" grit under the cut is synthesised noise, not a recording.
 
 | Files | Original | Author | License | Source |
 |---|---|---|---|---|
