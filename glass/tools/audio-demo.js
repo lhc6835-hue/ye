@@ -15,7 +15,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 window.runDemo = async () => {
   sfx.unlock();
-  while (sfx.loadedCount() < 17) await wait(50);
+  while (sfx.loadedCount() < 23) await wait(50);
   const ctx = window.__ctx;
   void ctx;
   const stream = sfx.__stream();
@@ -29,7 +29,7 @@ window.runDemo = async () => {
     sfx.impact("glass", 0.12, 1, 0);
     await wait(160);
     sfx.bite(1, 0);
-    let acc = 0, next = 0.006;
+    let acc = 0, next = 0.006, clickAcc = 0;
     const t0 = performance.now();
     while (performance.now() - t0 < len) {
       const u = (performance.now() - t0) / len;
@@ -41,6 +41,13 @@ window.runDemo = async () => {
         acc = 0;
         next = 0.003 + Math.random() * 0.005;
         sfx.grain(Math.min(1, v / 0.22) * (0.45 + 0.55 * chord), 1, 0);
+      }
+      const speedN = Math.min(1, v / 0.35);
+      if (Math.random() < 0.016 * (3 + 11 * speedN) * (0.4 + 0.6 * chord)) sfx.tinkle(0.25 + 0.6 * speedN, 0);
+      clickAcc += v * 0.016;
+      if (clickAcc > 0.024) {
+        clickAcc = 0;
+        sfx.metalClick(0.25 + 0.4 * speedN, 0);
       }
       await wait(16);
     }

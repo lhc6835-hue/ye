@@ -463,6 +463,16 @@ export class Game {
         c.hitch = 0.012 + Math.random() * 0.01;
         if (amt > 0.5) this.hooks.haptic(4);
       }
+      // crisp little sparkles of glass, more of them the faster the blade glides
+      const speedN = Math.min(1, c.v / 0.35);
+      if (Math.random() < dt * (3 + 11 * speedN) * (0.4 + 0.6 * chordN)) sfx.tinkle(0.25 + 0.6 * speedN, this.pan(Kcur));
+      // and now and then the steel clicks against the glass as it glides
+      c.clickAcc = (c.clickAcc || 0) + ds;
+      if (c.clickAcc > (c.nextClick ||= 0.02 + Math.random() * 0.012)) {
+        c.clickAcc = 0;
+        c.nextClick = 0.02 + Math.random() * 0.012;
+        sfx.metalClick(0.25 + 0.4 * speedN, this.pan(Kcur));
+      }
       if (c.s >= c.sEnd) {
         this.finishCut();
         return;
