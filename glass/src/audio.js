@@ -6,7 +6,7 @@
 // layered in, everything passes a small synthetic room and a limiter.
 
 const V = typeof __VERSION__ !== "undefined" ? __VERSION__ : "dev";
-const url = (n) => `assets/audio/${n}.mp3?v=${V}`;
+const url = (n) => `assets/audio/${n}.mp3${V ? `?v=${V}` : ""}`;
 const GROUPS = {
   crunch: ["crunch-1", "crunch-2", "crunch-3", "crunch-4"],
   ting: ["ting-1", "ting-2", "ting-3", "ting-4"],

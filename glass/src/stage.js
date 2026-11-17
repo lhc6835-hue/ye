@@ -4,7 +4,24 @@ import { HDRLoader } from "three/examples/jsm/loaders/HDRLoader.js";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 
 const V = typeof __VERSION__ !== "undefined" ? __VERSION__ : "dev";
-const asset = (p) => `assets/${p}?v=${V}`;
+const asset = (p) => `assets/${p}${V ? `?v=${V}` : ""}`;
+
+/** The studio HDRI: fetched normally, or parsed from bytes embedded in the page (artifact build). */
+async function loadHDR() {
+  const loader = new HDRLoader();
+  if (typeof window.__HDR !== "string") return loader.loadAsync(asset("tex/studio.hdr"));
+  const bin = atob(window.__HDR);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const d = loader.parse(bytes.buffer);
+  const t = new THREE.DataTexture(d.data, d.width, d.height, THREE.RGBAFormat, d.type);
+  t.colorSpace = THREE.LinearSRGBColorSpace;
+  t.minFilter = t.magFilter = THREE.LinearFilter;
+  t.generateMipmaps = false;
+  t.flipY = d.flipY ?? true;
+  t.needsUpdate = true;
+  return t;
+}
 
 export const BOARD = { w: 0.42, h: 0.022, d: 0.28 };
 export const BOARD_TOP = BOARD.h;
@@ -68,7 +85,7 @@ export class Stage {
     let done = 0;
     const tick = () => onProgress(++done / 4);
     const [hdr, diff, nor, rough] = await Promise.all([
-      new HDRLoader().loadAsync(asset("tex/studio.hdr")).then((t) => (tick(), t)),
+      loadHDR().then((t) => (tick(), t)),
       tl.loadAsync(asset("tex/wood_diff.jpg")).then((t) => (tick(), t)),
       tl.loadAsync(asset("tex/wood_nor_gl.jpg")).then((t) => (tick(), t)),
       tl.loadAsync(asset("tex/wood_rough.jpg")).then((t) => (tick(), t)),
