@@ -17,5 +17,40 @@
       "branch": ""
     }
   },
-  "games": []
+  "games": [
+    {
+      "id": "monochrome",
+      "title": "MONOCHROME",
+      "subtitle": "",
+      "status": "release",
+      "version": "1.0.0",
+      "featured": true,
+      "color": "#ffc626",
+      "genre": [],
+      "platforms": [
+        "web"
+      ],
+      "players": "1P",
+      "released": "2026-11-20",
+      "updated": "2026-11-20",
+      "cover": "assets/covers/monochrome-20261120090947.gif",
+      "description": "",
+      "controls": [],
+      "links": {
+        "play": "https://lhc6835-hue.github.io/monochrome",
+        "download": "",
+        "source": "https://github.com/lhc6835-hue/monochrome"
+      },
+      "changelog": [
+        {
+          "version": "1.0.0",
+          "date": "2026-11-20",
+          "status": "release",
+          "notes": [
+            "첫 공개"
+          ]
+        }
+      ]
+    }
+  ]
 }
