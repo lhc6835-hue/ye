@@ -27,28 +27,46 @@
 <!-- LOGIN -->
 <main class="wrap svc-login" id="loginView">
   <section class="svc-panel px-cut2">
-    <h1>OPERATOR LOGIN</h1>
-    <p>이 저장소에 <b>쓰기 권한이 있는 GitHub 계정</b>만 들어올 수 있어요. 토큰은 GitHub로만 전송되고, 이 브라우저 밖으로 나가지 않아요.</p>
-    <form id="loginForm" class="svc-form" autocomplete="off">
+    <h1 id="loginTitle">OPERATOR LOGIN</h1>
+
+    <form id="pwForm" class="svc-form" autocomplete="off" hidden>
+      <label>PASSWORD<input id="pw" type="password" required autocomplete="current-password" placeholder="비밀번호"></label>
+      <label class="check"><input type="checkbox" id="remember"> 이 기기에서 로그인 유지 (내 기기에서만 켜세요)</label>
+      <div class="actions">
+        <button class="btn primary" type="submit" id="pwBtn">INSERT PASSWORD ▶</button>
+        <button class="btn icon-btn" type="button" id="toSetup">비밀번호 재설정</button>
+      </div>
+      <pre class="svc-log" id="loginLog" aria-live="polite"></pre>
+    </form>
+
+    <form id="setupForm" class="svc-form" autocomplete="off" hidden>
+      <p>처음 한 번만 GitHub 토큰을 넣고 비밀번호를 정하면, 다음부터는 <b>비밀번호만</b> 입력하면 돼요. 토큰은 이 비밀번호로 암호화돼서 저장소에 저장되고, 비밀번호 자체는 어디에도 저장되지 않아요.</p>
       <div class="row3">
         <label>OWNER<input id="repoOwner" required placeholder="github 아이디"></label>
         <label>REPOSITORY<input id="repoName" required placeholder="저장소 이름"></label>
         <label>BRANCH<input id="repoBranch" placeholder="비우면 기본 브랜치"></label>
       </div>
-      <label>ACCESS TOKEN<input id="token" type="password" required placeholder="github_pat_..." spellcheck="false"></label>
-      <label class="check"><input type="checkbox" id="remember"> 이 기기에서 기억하기 (내 기기에서만 켜세요)</label>
-      <div class="actions"><button class="btn primary" type="submit" id="loginBtn">INSERT TOKEN ▶</button></div>
-      <pre class="svc-log" id="loginLog" aria-live="polite"></pre>
+      <label>ACCESS TOKEN<input id="token" type="password" required placeholder="github_pat_..." spellcheck="false" autocomplete="off"></label>
+      <div class="row2">
+        <label>NEW PASSWORD<input id="npw" type="password" required minlength="10" autocomplete="new-password" placeholder="10자 이상"></label>
+        <label>CONFIRM<input id="npw2" type="password" required minlength="10" autocomplete="new-password" placeholder="한 번 더"></label>
+      </div>
+      <span class="hint">암호화된 토큰은 공개 저장소에 올라가요. 길고 다른 데서 안 쓰는 비밀번호일수록 안전해요 (예: 짧은 문장).</span>
+      <div class="actions">
+        <button class="btn primary" type="submit" id="setupBtn">설정하고 로그인 ▶</button>
+        <button class="btn icon-btn" type="button" id="toPw">비밀번호로 로그인</button>
+      </div>
+      <pre class="svc-log" id="setupLog" aria-live="polite"></pre>
+      <details class="svc-help">
+        <summary>토큰 만드는 법 (1분)</summary>
+        <ol>
+          <li>GitHub → Settings → Developer settings → Personal access tokens → <b>Fine-grained tokens</b> → Generate new token</li>
+          <li>Repository access: <b>Only select repositories</b> → 이 사이트 저장소 하나만 선택</li>
+          <li>Permissions → Repository permissions → <b>Contents: Read and write</b> (나머지는 건드리지 않기)</li>
+          <li>만료일을 정하고 생성. 토큰이 만료되면 여기서 새 토큰으로 다시 설정하면 돼요</li>
+        </ol>
+      </details>
     </form>
-    <details class="svc-help">
-      <summary>토큰 만드는 법 (1분)</summary>
-      <ol>
-        <li>GitHub → Settings → Developer settings → Personal access tokens → <b>Fine-grained tokens</b> → Generate new token</li>
-        <li>Repository access: <b>Only select repositories</b> → 이 사이트 저장소 하나만 선택</li>
-        <li>Permissions → Repository permissions → <b>Contents: Read and write</b> (나머지는 건드리지 않기)</li>
-        <li>만료일은 짧게(예: 90일). 생성된 토큰을 위 칸에 붙여넣기</li>
-      </ol>
-    </details>
   </section>
 </main>
 

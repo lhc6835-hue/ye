@@ -90,6 +90,28 @@
   addEventListener("beforeunload", (e) => { if (dirtyCount()) { e.preventDefault(); e.returnValue = ""; } });
 
   // ---------------------------------------------------------------- login
+  // Password login: the GitHub token is stored in data/auth.json encrypted with the operator's password
+  // (PBKDF2-SHA256, 600k rounds -> AES-GCM 256). Only the ciphertext is public; the password never leaves the browser.
+  const AUTH_PATH = "data/auth.json";
+  const ITER = 600000, MIN_PW = 10;
+  const b64e = (bytes) => { let s = ""; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(s); };
+  const b64d = (str) => Uint8Array.from(atob(str), (c) => c.charCodeAt(0));
+  async function deriveKey(pw, salt, iter) {
+    const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
+    return crypto.subtle.deriveKey({ name: "PBKDF2", hash: "SHA-256", salt, iterations: iter }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+  }
+  async function sealToken(token, pw) {
+    const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+    const key = await deriveKey(pw, salt, ITER);
+    const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(token)));
+    return { v: 1, kdf: "PBKDF2-SHA256", iter: ITER, salt: b64e(salt), iv: b64e(iv), ct: b64e(ct), repo: { owner: gh.owner, name: gh.repo, branch: gh.branch }, updated: today() };
+  }
+  async function openToken(auth, pw) {
+    const key = await deriveKey(pw, b64d(auth.salt), auth.iter || ITER);
+    const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64d(auth.iv) }, key, b64d(auth.ct));
+    return new TextDecoder().decode(pt);
+  }
+
   function guessRepo() {
     const host = location.hostname, parts = location.pathname.split("/").filter(Boolean);
     if (host.endsWith(".github.io")) {
@@ -98,6 +120,7 @@
     }
     return null;
   }
+  let AUTH = null;
   async function prefill() {
     let g = guessRepo();
     try {
@@ -105,47 +128,86 @@
       const r = d?.site?.repo;
       if (r?.owner) g = { owner: r.owner, repo: r.name, branch: r.branch || "" };
     } catch { /* offline */ }
-    const saved = ss.get("arcade-admin:repo");
-    if (saved) try { g = { ...g, ...JSON.parse(saved) }; } catch { /* bad json */ }
-    if (g) { $("#repoOwner").value = g.owner || ""; $("#repoName").value = g.repo || ""; if (g.branch) $("#repoBranch").value = g.branch; }
+    try { const r = await fetch(AUTH_PATH, { cache: "no-store" }); if (r.ok) AUTH = await r.json(); } catch { /* not set up yet */ }
+    if (AUTH?.repo?.owner) g = { owner: AUTH.repo.owner, repo: AUTH.repo.name, branch: AUTH.repo.branch || "" };
+    if (g) { gh.owner = g.owner || ""; gh.repo = g.repo || ""; gh.branch = g.branch || ""; $("#repoOwner").value = gh.owner; $("#repoName").value = gh.repo; $("#repoBranch").value = gh.branch; }
+    showForm(AUTH?.ct ? "pw" : "setup");
     const tok = ss.get("arcade-admin:token");
-    if (tok && g?.owner && g?.repo) { $("#token").value = tok; login(); }
+    if (tok && gh.owner && gh.repo) { gh.token = tok; try { openEditor(await verifyAndLoad(log)); } catch { ss.del("arcade-admin:token"); } }
   }
-  const log = (msg, err) => { const l = $("#loginLog"); l.append(h("div", { class: err ? "err" : "", text: msg })); };
-  async function login(e) {
-    e?.preventDefault();
+  function showForm(which) {
+    $("#pwForm").hidden = which !== "pw";
+    $("#setupForm").hidden = which !== "setup";
+    $("#loginTitle").textContent = which === "pw" ? "OPERATOR LOGIN" : AUTH?.ct ? "RESET PASSWORD" : "FIRST-TIME SETUP";
+    $("#loginLog").replaceChildren(); $("#setupLog").replaceChildren();
+    (which === "pw" ? $("#pw") : $("#token")).focus();
+  }
+  const logTo = (id) => (msg, err) => $(id).append(h("div", { class: err ? "err" : "", text: msg }));
+  const log = logTo("#loginLog");
+
+  // check the token against GitHub and load the data file; no UI change
+  async function verifyAndLoad(say) {
+    say("> CHECKING ACCESS ...");
+    const me = await gh.req("/user");
+    const repo = await gh.req(`/repos/${encodeURIComponent(gh.owner)}/${encodeURIComponent(gh.repo)}`);
+    if (!repo.permissions?.push) throw Object.assign(new Error("이 계정은 저장소에 쓰기 권한이 없어요."), { status: 403 });
+    if (!gh.branch) gh.branch = repo.default_branch;
+    say(`> HELLO ${me.login} · WRITE ACCESS OK`);
+    const file = await gh.get(DATA_PATH);
+    baseSha = file.sha;
+    const loaded = JSON.parse(dec(file.content));
+    loaded.site = loaded.site || {}; loaded.games = loaded.games || [];
+    original = JSON.stringify(loaded);
+    data = loaded;
+    return me;
+  }
+  function openEditor(me) {
+    ss.set("arcade-admin:token", gh.token, $("#remember").checked);
+    $("#opLabel").replaceChildren("OPERATOR: ", h("b", { text: me.login }), ` · ${gh.owner}/${gh.repo}`);
+    $("#loginView").hidden = true; $("#editView").hidden = false; $("#logoutBtn").hidden = false;
+    offerDraft();
+    renderList(); renderEditor(); markDirty();
+  }
+  const why = (err) => err.status === 401 ? "저장된 토큰이 만료됐거나 취소됐어요. '비밀번호 재설정'에서 새 토큰으로 다시 설정해주세요."
+    : err.status === 404 ? "저장소나 data/games.json을 찾지 못했어요." : err.status === 403 ? err.message : `요청 실패: ${err.message}`;
+
+  async function pwLogin(e) {
+    e.preventDefault();
     $("#loginLog").replaceChildren();
+    const btn = $("#pwBtn"); btn.disabled = true;
+    try {
+      log("> UNLOCKING ...");
+      try { gh.token = await openToken(AUTH, $("#pw").value); }
+      catch { await new Promise((r) => setTimeout(r, 700)); log("> 비밀번호가 틀렸어요.", true); $("#pw").select(); return; }
+      openEditor(await verifyAndLoad(log));
+    } catch (err) { log("> ACCESS DENIED. " + why(err), true); }
+    finally { btn.disabled = false; }
+  }
+  async function setup(e) {
+    e.preventDefault();
+    const say = logTo("#setupLog");
+    $("#setupLog").replaceChildren();
+    const pw = $("#npw").value, pw2 = $("#npw2").value;
+    if (pw.length < MIN_PW) { say(`> 비밀번호는 ${MIN_PW}자 이상으로 해주세요. 짧은 문장처럼 길게 만드는 게 가장 안전해요.`, true); return; }
+    if (pw !== pw2) { say("> 두 비밀번호가 달라요.", true); return; }
     gh.owner = $("#repoOwner").value.trim(); gh.repo = $("#repoName").value.trim(); gh.branch = $("#repoBranch").value.trim();
     gh.token = $("#token").value.trim();
-    $("#loginBtn").disabled = true;
+    const btn = $("#setupBtn"); btn.disabled = true;
     try {
-      log("> CHECKING TOKEN ...");
-      const me = await gh.req("/user");
-      log(`> HELLO ${me.login}`);
-      log(`> CHECKING ACCESS TO ${gh.owner}/${gh.repo} ...`);
-      const repo = await gh.req(`/repos/${encodeURIComponent(gh.owner)}/${encodeURIComponent(gh.repo)}`);
-      if (!repo.permissions?.push) throw Object.assign(new Error("이 계정은 저장소에 쓰기 권한이 없어요."), { status: 403 });
-      if (!gh.branch) { gh.branch = repo.default_branch; $("#repoBranch").value = gh.branch; }
-      log("> WRITE ACCESS OK");
-      log(`> LOADING ${DATA_PATH} ...`);
-      const file = await gh.get(DATA_PATH);
-      baseSha = file.sha;
-      const loaded = JSON.parse(dec(file.content));
-      loaded.site = loaded.site || {}; loaded.games = loaded.games || [];
-      original = JSON.stringify(loaded);
-      data = loaded;
-      const remember = $("#remember").checked;
-      ss.set("arcade-admin:token", gh.token, remember);
-      ss.set("arcade-admin:repo", JSON.stringify({ owner: gh.owner, repo: gh.repo, branch: gh.branch }), true);
-      $("#opLabel").replaceChildren("OPERATOR: ", h("b", { text: me.login }), ` · ${gh.owner}/${gh.repo}@${gh.branch}`);
-      $("#loginView").hidden = true; $("#editView").hidden = false; $("#logoutBtn").hidden = false;
-      offerDraft();
-      renderList(); renderEditor(); markDirty();
+      const me = await verifyAndLoad(say);
+      say("> ENCRYPTING TOKEN ...");
+      const sealed = await sealToken(gh.token, pw);
+      let sha;
+      try { sha = (await gh.get(AUTH_PATH)).sha; } catch { /* first time */ }
+      await gh.put(AUTH_PATH, enc(JSON.stringify(sealed, null, 2) + "\n"), "arcade: set operator password", sha);
+      AUTH = sealed;
+      say("> PASSWORD SAVED. 다음부터는 비밀번호만 입력하면 돼요.");
+      $("#token").value = ""; $("#npw").value = ""; $("#npw2").value = "";
+      setTimeout(() => openEditor(me), 900);
     } catch (err) {
-      const why = err.status === 401 ? "토큰이 올바르지 않거나 만료됐어요." : err.status === 404 ? "저장소나 data/games.json을 찾지 못했어요. 이름과 브랜치, 토큰의 저장소 선택을 확인하세요." : err.status === 403 ? err.message : `요청 실패: ${err.message}`;
-      log("> ACCESS DENIED. " + why, true);
-      ss.del("arcade-admin:token");
-    } finally { $("#loginBtn").disabled = false; }
+      const m = err.status === 401 ? "토큰이 올바르지 않거나 만료됐어요." : err.status === 403 || err.status === 404 ? "토큰에 이 저장소의 Contents 쓰기 권한이 있는지 확인해주세요." : err.message;
+      say("> FAILED. " + m, true);
+    } finally { btn.disabled = false; }
   }
   function offerDraft() {
     let d = null;
@@ -157,7 +219,10 @@
       h("button", { class: "btn", text: "버리기", onclick: () => { try { localStorage.removeItem(draftKey()); } catch { /* */ } bar.remove(); } }));
     $("#editor").before(bar);
   }
-  $("#loginForm").addEventListener("submit", login);
+  $("#pwForm").addEventListener("submit", pwLogin);
+  $("#setupForm").addEventListener("submit", setup);
+  $("#toSetup").addEventListener("click", () => showForm("setup"));
+  $("#toPw").addEventListener("click", () => showForm("pw"));
   $("#logoutBtn").addEventListener("click", () => { ss.del("arcade-admin:token"); location.reload(); });
 
   // ---------------------------------------------------------------- list
