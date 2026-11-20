@@ -1,0 +1,80 @@
+/* Service mode: the arcade's test menu. Same tokens as the floor, flatter and denser. */
+.svc .topbar .wrap { gap: 16px; }
+.svc .brand b { font-size: var(--t-s); color: var(--gold); text-shadow: none; letter-spacing: 0.18em; }
+.svc-op { font-family: var(--f-small); font-size: var(--t-xs); color: var(--ink-mute); letter-spacing: 0.12em; }
+.svc-op b { color: var(--green); font-weight: 400; }
+.svc-dirty { font-family: var(--f-small); font-size: var(--t-xs); color: var(--orange); letter-spacing: 0.12em; animation: blink 1s steps(1) infinite; }
+
+.svc-panel { background: var(--cab); padding: 22px; box-shadow: inset 0 0 0 var(--px) var(--line-hi); min-width: 0; }
+.svc-panel h1, .svc-panel h2 { margin: 0 0 12px; font-size: var(--t-m); letter-spacing: 0.06em; }
+.svc-panel h3 { margin: 0; font-size: var(--t-s); letter-spacing: 0.16em; color: var(--cyan); font-weight: 400; }
+.svc-panel p { margin: 0 0 14px; color: var(--ink-dim); }
+.svc-login { padding-block: 48px; max-width: 760px; }
+
+.svc-form { display: grid; gap: 14px; }
+.svc-form label { display: grid; gap: 4px; font-family: var(--f-small); font-size: var(--t-xs); color: var(--ink-mute); letter-spacing: 0.12em; min-width: 0; }
+.svc-form label.check { display: flex; align-items: center; gap: 8px; font-family: var(--f-body); font-size: var(--t-s); color: var(--ink-dim); letter-spacing: 0; }
+.svc-form input:not([type="checkbox"]):not([type="color"]):not([type="file"]), .svc-form select, .svc-form textarea {
+  width: 100%; min-width: 0; padding: 8px 10px; background: #05030b; border: 0; color: var(--ink); font-family: var(--f-body); font-size: var(--t-s); letter-spacing: 0;
+  box-shadow: inset 0 0 0 2px var(--line); }
+.svc-form input:focus, .svc-form select:focus, .svc-form textarea:focus { outline: 0; box-shadow: inset 0 0 0 2px var(--cyan); }
+.svc-form textarea { min-height: 84px; resize: vertical; line-height: 1.7; }
+.svc-form input[type="color"] { width: 48px; height: 36px; padding: 0; border: 0; background: none; }
+.svc-form input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--pink); }
+.svc-form .hint { font-family: var(--f-body); font-size: var(--t-xs); color: var(--ink-mute); letter-spacing: 0; }
+.row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.row3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.row4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.svc-form fieldset { margin: 0; padding: 14px; border: 0; box-shadow: inset 0 0 0 2px var(--line); display: grid; gap: 12px; min-width: 0; }
+.svc-form legend { padding: 0 6px; font-family: var(--f-small); font-size: var(--t-xs); color: var(--pink-hi); letter-spacing: 0.16em; }
+.plats { display: flex; gap: 6px 14px; flex-wrap: wrap; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.svc-log { margin: 0; min-height: 1.6em; white-space: pre-wrap; font-family: var(--f-small); font-size: var(--t-xs); color: var(--green); letter-spacing: 0.04em; }
+.svc-log .err { color: var(--red); }
+.svc-help { margin-top: 18px; color: var(--ink-dim); }
+.svc-help summary { cursor: pointer; color: var(--cyan); }
+.svc-help ol { padding-left: 20px; margin: 10px 0 0; display: grid; gap: 4px; }
+
+.svc-main { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 22px; padding-block: 24px 48px; align-items: start; }
+.svc-side { display: grid; gap: 10px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 76px); }
+.svc-side-head { display: flex; align-items: center; justify-content: space-between; }
+.svc-side-head h2 { margin: 0; font-size: var(--t-s); letter-spacing: 0.16em; color: var(--ink-dim); font-weight: 400; }
+.svc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 60vh; overflow: auto; }
+.svc-list button { all: unset; box-sizing: border-box; width: 100%; cursor: pointer; display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; background: var(--cab); box-shadow: inset 0 0 0 2px var(--line); }
+.svc-list button:hover { box-shadow: inset 0 0 0 2px var(--line-hi); }
+.svc-list button[aria-current="true"] { box-shadow: inset 0 0 0 2px var(--gold); background: var(--cab-hi); }
+.svc-list button[aria-current="true"]::after { content: "◀"; color: var(--gold); position: absolute; }
+.svc-list button:focus-visible { outline: var(--px) solid var(--gold); }
+.svc-list i { width: 10px; height: 10px; background: var(--c); }
+.svc-list .t { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.svc-list .s { font-family: var(--f-small); font-size: var(--t-xs); color: var(--c); letter-spacing: 0.1em; }
+.svc-list .mark { color: var(--orange); }
+
+.ed-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.ed-head h2 { margin: 0; }
+.cover-box { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 14px; align-items: start; }
+.cover-prev { aspect-ratio: 16 / 10; background: #000; box-shadow: inset 0 0 0 2px var(--line); display: grid; place-items: center; overflow: hidden; color: var(--ink-mute); font-family: var(--f-small); font-size: var(--t-xs); }
+.cover-prev img { width: 100%; height: 100%; object-fit: cover; }
+.rows { display: grid; gap: 8px; }
+.ctl-row { display: grid; grid-template-columns: 140px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.log-row { display: grid; gap: 8px; padding: 12px; box-shadow: inset 3px 0 0 var(--c, var(--line-hi)), inset 0 0 0 1px var(--line); }
+.log-row .row4 { align-items: end; }
+.x-btn { min-height: 34px; }
+.danger { --b: var(--red); color: var(--red); }
+.danger.armed { background: var(--red); color: #fff; }
+.svc-empty { color: var(--ink-mute); }
+
+@media (max-width: 900px) {
+  .svc-main { grid-template-columns: minmax(0, 1fr); }
+  .svc-side { position: static; }
+  .svc-list { max-height: none; }
+  .row3, .row4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .row2, .row3, .row4 { grid-template-columns: minmax(0, 1fr); }
+  .cover-box { grid-template-columns: minmax(0, 1fr); }
+  .ctl-row { grid-template-columns: 100px minmax(0, 1fr) auto; }
+  .svc-panel { padding: 14px; }
+}
+.svc .actions .btn { flex: 0 0 auto; }

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Arcade Service Mode</title>
+<meta name="theme-color" content="#07050f">
+<link rel="icon" href="assets/favicon.png" type="image/png">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="crt svc">
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="./" title="사이트로 돌아가기"><b>SERVICE MODE</b></a>
+    <span class="svc-op" id="opLabel">OPERATOR: -</span>
+    <div class="hud">
+      <span class="svc-dirty" id="dirty" hidden>UNSAVED 0</span>
+      <button class="btn primary" id="publishBtn" disabled>PUBLISH</button>
+      <button class="btn icon-btn" id="logoutBtn" hidden>LOGOUT</button>
+    </div>
+  </div>
+</header>
+
+<!-- LOGIN -->
+<main class="wrap svc-login" id="loginView">
+  <section class="svc-panel px-cut2">
+    <h1>OPERATOR LOGIN</h1>
+    <p>이 저장소에 <b>쓰기 권한이 있는 GitHub 계정</b>만 들어올 수 있어요. 토큰은 GitHub로만 전송되고, 이 브라우저 밖으로 나가지 않아요.</p>
+    <form id="loginForm" class="svc-form" autocomplete="off">
+      <div class="row3">
+        <label>OWNER<input id="repoOwner" required placeholder="github 아이디"></label>
+        <label>REPOSITORY<input id="repoName" required placeholder="저장소 이름"></label>
+        <label>BRANCH<input id="repoBranch" placeholder="비우면 기본 브랜치"></label>
+      </div>
+      <label>ACCESS TOKEN<input id="token" type="password" required placeholder="github_pat_..." spellcheck="false"></label>
+      <label class="check"><input type="checkbox" id="remember"> 이 기기에서 기억하기 (내 기기에서만 켜세요)</label>
+      <div class="actions"><button class="btn primary" type="submit" id="loginBtn">INSERT TOKEN ▶</button></div>
+      <pre class="svc-log" id="loginLog" aria-live="polite"></pre>
+    </form>
+    <details class="svc-help">
+      <summary>토큰 만드는 법 (1분)</summary>
+      <ol>
+        <li>GitHub → Settings → Developer settings → Personal access tokens → <b>Fine-grained tokens</b> → Generate new token</li>
+        <li>Repository access: <b>Only select repositories</b> → 이 사이트 저장소 하나만 선택</li>
+        <li>Permissions → Repository permissions → <b>Contents: Read and write</b> (나머지는 건드리지 않기)</li>
+        <li>만료일은 짧게(예: 90일). 생성된 토큰을 위 칸에 붙여넣기</li>
+      </ol>
+    </details>
+  </section>
+</main>
+
+<!-- EDITOR -->
+<main class="wrap svc-main" id="editView" hidden>
+  <aside class="svc-side">
+    <div class="svc-side-head">
+      <h2>GAME LIST</h2>
+      <button class="btn icon-btn" id="newGame">+ NEW</button>
+    </div>
+    <ol class="svc-list" id="gameList"></ol>
+    <button class="btn" id="siteBtn">SITE SETTINGS</button>
+    <a class="btn" href="./" target="_blank" rel="noopener">VIEW SITE ↗</a>
+  </aside>
+
+  <section class="svc-panel" id="editor"></section>
+</main>
+
+<div class="toast" id="toast" role="status" hidden></div>
+<script src="js/admin.js"></script>
+</body>
+</html>

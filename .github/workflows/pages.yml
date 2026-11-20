@@ -1,4 +1,5 @@
-# Builds the single-file game and publishes it to GitHub Pages.
+# Publishes the arcade hub to GitHub Pages. It is a static site, so there is no build step:
+# every push to the default branch (including commits made from admin.html) redeploys it.
 name: Deploy to GitHub Pages
 
 on:
@@ -23,14 +24,8 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: .
       - id: deployment
         uses: actions/deploy-pages@v4

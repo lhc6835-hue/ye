@@ -1,24 +1,217 @@
 <!doctype html>
 <html lang="ko">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-    <title>Catchute</title>
-    <meta name="claude:viewport-fit-sides" content="cover" />
-    <style>
-      /* one arcade screen, centered; a single dark look on purpose */
-      :root { --ground: #0d0a18; color-scheme: dark; }
-      html, body { height: 100%; margin: 0; background: var(--ground); overflow: hidden; }
-      #stage {
-        box-sizing: border-box; height: 100%; display: flex; align-items: center; justify-content: center;
-        padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-        user-select: none; -webkit-user-select: none; touch-action: none;
-      }
-      canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; cursor: pointer; }
-    </style>
-  </head>
-  <body>
-    <main id="stage"><canvas id="game" aria-label="Catchute game"></canvas></main>
-    <script type="module" src="./src/main.js"></script>
-  </body>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PIXEL ARCADE</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="직접 만든 게임들을 모아둔 픽셀 오락실">
+<meta name="theme-color" content="#07050f">
+<link rel="icon" href="assets/favicon.png" type="image/png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="crt">
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="맨 위로">
+      <svg viewBox="0 0 10 10" aria-hidden="true">
+        <rect x="3" y="0" width="4" height="1" fill="#ff4a5a"/><rect x="2" y="1" width="6" height="2" fill="#ff4a5a"/><rect x="3" y="1" width="2" height="1" fill="#ff9aa6"/>
+        <rect x="3" y="3" width="4" height="1" fill="#a01c2c"/><rect x="4" y="4" width="2" height="3" fill="#8a8aa8"/>
+        <rect x="1" y="7" width="8" height="2" fill="#2f2652"/><rect x="0" y="9" width="10" height="1" fill="#141026"/><rect x="1" y="7" width="8" height="1" fill="#4a3d7c"/>
+      </svg>
+      <b data-site="name">PIXEL ARCADE</b>
+    </a>
+    <nav class="nav" aria-label="섹션">
+      <a href="#games">GAMES</a>
+      <a href="#patch-notes">PATCH NOTES</a>
+      <a href="#stages">STAGES</a>
+      <a href="#about">ABOUT</a>
+    </nav>
+    <div class="hud">
+      <div class="credit" id="credit" title="코인을 넣으면 올라가요 (키보드 5)"><span>CREDIT</span><output id="creditNum">00</output></div>
+      <button class="btn icon-btn" id="sfxToggle" aria-pressed="true" title="효과음">SFX</button>
+      <button class="btn icon-btn" id="bgmToggle" aria-pressed="false" title="배경음악">BGM</button>
+      <button class="btn icon-btn" id="crtToggle" aria-pressed="true" title="CRT 스캔라인">CRT</button>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+  <!-- ATTRACT MODE -->
+  <section class="attract" aria-label="메인">
+    <div class="wrap attract-grid">
+      <div class="cabinet px-cut2">
+        <div class="cab-sign">
+          <span class="bulbs" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          <h1 data-site="name">PIXEL ARCADE</h1>
+          <span class="bulbs" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        </div>
+        <div class="screen-bezel">
+          <div class="screen" id="attractScreen">
+            <canvas id="horizon" width="320" height="180" aria-hidden="true"></canvas>
+            <div class="screen-ui">
+              <div class="top"><span>1UP <b id="hiCount">00</b> GAMES</span><span>HI-SCORE <b id="hiDate">----.--.--</b></span></div>
+              <div class="mid">
+                <span class="blink-text" id="attractCall">INSERT COIN</span>
+                <p data-site="tagline">직접 만든 게임들을 모아둔 작은 오락실</p>
+              </div>
+              <div class="now-showing" id="nowShowing" aria-live="polite">
+                <span class="lbl">NOW SHOWING</span><span class="ttl">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="deck">
+          <div class="stick" id="stick" aria-hidden="true"><span class="base"></span><span class="shaft"></span><span class="ball"></span></div>
+          <div class="deck-mid">
+            <span class="arc-btn-wrap"><button class="arc-btn" style="--c:#f53cd1" data-jump="#games" aria-label="게임 목록으로">&nbsp;</button>GAMES</span>
+            <span class="arc-btn-wrap"><button class="arc-btn" style="--c:#4ce8d8" data-jump="#patch-notes" aria-label="패치 노트로">&nbsp;</button>NOTES</span>
+            <span class="arc-btn-wrap"><button class="arc-btn" style="--c:#ffc626" data-jump="#stages" aria-label="개발 단계 안내로">&nbsp;</button>STAGES</span>
+          </div>
+          <div class="coin-door">
+            <button class="coin-slot" id="coinSlot" aria-label="코인 넣기"><span class="mouth" id="slotMouth"></span>INSERT</button>
+            <button class="start-btn" id="startBtn" aria-label="1P START: 추천 게임 열기"><span class="cap">1P</span>START</button>
+          </div>
+        </div>
+      </div>
+
+      <aside class="board px-cut2" aria-label="현황">
+        <h2>HI-SCORE TABLE</h2>
+        <ol id="boardList"></ol>
+        <div class="total"><span>TOTAL GAMES</span><span class="ct" id="totalCount">00</span></div>
+        <div class="meta" id="boardMeta"></div>
+        <div class="keys"><kbd>5</kbd><span>코인 넣기</span><kbd>1</kbd><span>1P START · 추천 게임</span><kbd>← →</kbd><span>게임 선택</span><kbd>ENTER</kbd><span>정보 열기</span></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- TICKER -->
+  <div class="ticker" aria-label="최근 소식">
+    <div class="wrap">
+      <span class="tag">NEWS</span>
+      <div class="track"><div class="run" id="tickerRun"></div></div>
+    </div>
+  </div>
+
+  <!-- GAMES -->
+  <section class="section" id="games">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>SELECT GAME<span class="cur">_</span><span class="ko">게임 선택</span></h2>
+        <span class="result-line" id="resultLine" aria-live="polite"></span>
+      </div>
+      <div class="controls">
+        <div class="chips" id="chips" role="group" aria-label="상태 필터"></div>
+        <span class="grow"></span>
+        <div class="field"><label for="q">SEARCH</label><input id="q" type="search" placeholder="제목, 장르" autocomplete="off"></div>
+        <div class="field"><label for="sort">SORT</label>
+          <select id="sort">
+            <option value="updated">최근 업데이트</option>
+            <option value="status">개발 단계</option>
+            <option value="title">이름순</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </section>
+
+  <!-- PATCH NOTES -->
+  <section class="section" id="patch-notes" style="background: var(--floor)">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>PATCH NOTES<span class="ko">업데이트 기록</span></h2>
+      </div>
+      <div class="notes-grid">
+        <div>
+          <ol class="timeline" id="timeline"></ol>
+          <div class="more-row"><button class="btn" id="moreNotes" hidden>더 보기</button></div>
+        </div>
+        <aside class="side-card px-cut">
+          <h3>LATEST BUILD</h3>
+          <dl id="latestBuild"></dl>
+          <p>카드의 버전 표기는 각 게임의 마지막 빌드 기준이에요.</p>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- STAGES -->
+  <section class="section" id="stages">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>STAGE SELECT<span class="ko">개발 단계 안내</span></h2>
+      </div>
+      <ol class="stages" id="stageList"></ol>
+    </div>
+  </section>
+</main>
+
+<footer class="footer" id="about">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <h3>PLAYER 1</h3>
+        <div class="dev">
+          <span class="avatar"><svg viewBox="0 0 8 8" aria-hidden="true">
+            <rect x="2" y="0" width="4" height="1" fill="#f53cd1"/><rect x="1" y="1" width="6" height="1" fill="#f53cd1"/>
+            <rect x="1" y="2" width="6" height="3" fill="#ffd2b0"/><rect x="2" y="3" width="1" height="1" fill="#141026"/><rect x="5" y="3" width="1" height="1" fill="#141026"/>
+            <rect x="3" y="5" width="2" height="1" fill="#ffd2b0"/><rect x="1" y="6" width="6" height="2" fill="#4ce8d8"/><rect x="3" y="6" width="2" height="1" fill="#b4fff0"/>
+          </svg></span>
+          <b data-site="developer">DEVELOPER</b>
+        </div>
+        <p data-site="bio"></p>
+      </div>
+      <div>
+        <h3>LINKS</h3>
+        <ul class="link-list" id="devLinks"></ul>
+      </div>
+      <div>
+        <h3>CREDITS</h3>
+        <ul class="link-list credits">
+          <li>픽셀 이펙트 엔진: <a href="https://github.com/patch-gg/pixelfx" target="_blank" rel="noopener">pixelfx</a> (MIT)</li>
+          <li>효과음: <a href="https://kenney.nl" target="_blank" rel="noopener">Kenney</a> (CC0)</li>
+          <li>BGM: 이 사이트 전용 오리지널 칩튠</li>
+          <li>글꼴: <a href="https://github.com/quiple/galmuri" target="_blank" rel="noopener">Galmuri</a> (OFL)</li>
+          <li>이펙트·화면 연출: 이 사이트 전용 제작</li>
+        </ul>
+      </div>
+    </div>
+    <div class="gameover">
+      <span>© <span id="year">2026</span> <span data-site="developer">DEVELOPER</span> · ALL GAMES MADE BY HAND</span>
+      <span><a href="admin.html" class="op-link" rel="nofollow">SERVICE</a> · <a href="#top">CONTINUE? ▲ 맨 위로</a></span>
+    </div>
+  </div>
+</footer>
+
+<dialog class="detail" id="detail" aria-labelledby="dlgTitle">
+  <div class="dlg-bar"><span>GAME INFO · <b id="dlgId">-</b></span><button class="btn icon-btn" id="dlgClose" aria-label="닫기">ESC ✕</button></div>
+  <div class="dlg-grid">
+    <div class="dlg-left">
+      <div class="dlg-screen" id="dlgScreen">
+        <span class="crt-glass" aria-hidden="true"></span>
+        <canvas class="crt" id="crtCanvas" width="320" height="180" aria-hidden="true"></canvas>
+      </div>
+      <div class="keys" id="dlgKeys"></div>
+    </div>
+    <div class="dlg-right">
+      <div class="dlg-status" id="dlgStatus"></div>
+      <h2 id="dlgTitle">-</h2>
+      <div class="sub" id="dlgSub"></div>
+      <p class="desc" id="dlgDesc"></p>
+      <dl class="spec" id="dlgSpec"></dl>
+      <div class="actions" id="dlgActions"></div>
+    </div>
+  </div>
+  <div class="history"><h4>VERSION HISTORY</h4><ol class="hist" id="dlgHist"></ol></div>
+</dialog>
+
+<canvas id="fxLayer" aria-hidden="true"></canvas>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="js/fx.bundle.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/app.js"></script>
+</body>
 </html>

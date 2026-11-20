@@ -1,65 +1,111 @@
-# CATCHUTE
+# PIXEL ARCADE
 
-낙하산을 멘 고양이가 밤의 골목 빌딩 사이로 끝없이 떨어지는 픽셀아트 러너 게임이에요.
+직접 만든 게임들을 올려두는 픽셀아트 오락실 허브. GitHub Pages에 그대로 올리면 동작하는 정적 사이트예요. 빌드 과정이 없어요.
 
-## 조작
+## 구성
 
-| 입력 | 동작 |
+| 경로 | 내용 |
 |---|---|
-| 마우스 왼쪽 버튼 누르고 있기 (또는 Space) | 낙하산 펼치기: 천천히 떨어짐 |
-| 버튼 떼기 | 낙하산 접기: 빠르게 다이브 |
-| A / D 또는 ← / → | 좌우 이동 |
-| (폰) 화면 누르고 있기 | 낙하산 펼치기 |
-| (폰) 핸드폰 좌우로 기울이기 | 좌우 이동. 3° 미만은 무시하고, 22°에서 최고 속도 |
-| M | 소리 켜기/끄기 |
-| R | 결과 화면에서 바로 재시작 |
+| `index.html` | 메인 사이트 |
+| `admin.html` | 게임을 올리고 고치는 관리 페이지 (SERVICE MODE) |
+| `data/games.json` | 게임 목록과 사이트 정보. 사이트가 읽는 유일한 데이터 |
+| `assets/covers/` | 게임 커버 이미지 (관리 페이지에서 올리면 여기 저장됨) |
+| `assets/sprites/` | 상태 배지·NO SIGNAL 화면 스프라이트 시트 |
+| `assets/sfx/` | 효과음 (Kenney, CC0) |
+| `js/fx.bundle.js` | 직접 만든 픽셀 이펙트 + pixelfx 엔진 번들 |
+| `fx-src/` | 위 이펙트들의 원본 소스와 재빌드 스크립트 |
 
-## 규칙
+## 주소
 
-- 떨어진 깊이(m)가 점수예요.
-- 낙하산은 오래 못 펴요. 펴고 있으면 고양이 머리 위 게이지가 2초 만에 바닥나고, 다 떨어지면 강제로 접혀요(NO AIR!). 다이브하는 동안 다시 차요.
-- 낙하산을 접고 다이브하는 동안 배율이 0.8초마다 올라가요(최대 x9). 낙하산을 펴는 순간 x1로 돌아가요.
-- 다이브 중에 장애물을 아슬아슬하게 스치면 `CLOSE!` 보너스를 받아요.
-- 물고기를 먹으면 50 × 배율 점수를 받아요.
-- 발코니, 실외기, 빨랫줄의 빨래, 네온 간판, 새에 부딪히면 끝나요.
-- 깊이 내려갈수록 다이브 속도와 장애물 밀도가 올라가요(1500m에서 최고 난이도). 650m마다 건물 색이 바뀌어요.
-- 새는 화면에 들어오기 전에 벽 쪽에 `!` 경고가 깜빡여요.
-- 어떤 줄이든 앞 줄에서 낙하산을 펴고 옮겨 갈 수 있는 거리 안에 빈틈이 생겨요. 그래서 못 깨는 구간은 없어요.
+https://lhc6835-hue.github.io/ye/
 
-## 실행
+`.github/workflows/pages.yml`이 기본 브랜치에 커밋이 올라올 때마다 사이트를 다시 배포해요 (1~2분).
+관리 페이지에서 PUBLISH 해도 커밋이 생기니까 똑같이 자동 반영돼요.
 
-바로 플레이: https://lhc6835-hue.github.io/ye/
+## 게임 올리기 (본인만 가능)
 
-`main`이나 `claude/tender-goldberg-xoww3e` 브랜치에 푸시하면 `.github/workflows/pages.yml`이 빌드해서 GitHub Pages에 자동으로 올려요.
+관리 페이지는 `https://<아이디>.github.io/<저장소이름>/admin.html` (사이트 맨 아래 `SERVICE` 링크).
 
-개발할 때는 ES 모듈이라 로컬 서버가 필요해요.
+**누가 올릴 수 있나:** GitHub가 직접 판단해요. 관리 페이지는 입력한 토큰으로 GitHub API에 접속해서
+"이 계정이 이 저장소에 쓰기 권한이 있는지"를 확인하고, 저장도 GitHub API로 커밋해요.
+그래서 저장소에 쓰기 권한이 없는 사람은 페이지에 들어와도 아무것도 못 바꿔요. 사이트 코드 안에는 비밀번호나 토큰이 없어요.
+
+### 토큰 만들기 (처음 한 번)
+
+1. GitHub → Settings → Developer settings → Personal access tokens → **Fine-grained tokens** → Generate new token
+2. Repository access: **Only select repositories** → 이 사이트 저장소 하나만
+3. Repository permissions → **Contents: Read and write** (다른 권한은 주지 않기)
+4. 만료일은 짧게 (예: 90일)
+
+토큰은 관리 페이지 칸에 붙여넣으면 돼요. 기본은 탭을 닫으면 잊어버리고, "이 기기에서 기억하기"를 켜면 그 브라우저에만 저장돼요.
+토큰이 새어나간 것 같으면 GitHub에서 바로 삭제(Revoke)하세요.
+
+### 사용법
+
+- **+ NEW** 로 게임 추가, 왼쪽 목록에서 골라 수정
+- 상태: `RELEASE` / `BETA` / `ALPHA` / `DEV` / `SOON`
+- 링크(PLAY/DOWNLOAD/SOURCE)를 비워두면 사이트에 "준비 중" 버튼으로 나와요
+- 커버를 안 올리면 NO SIGNAL 화면이 나와요 (16:10 비율 권장)
+- **PUBLISH** (또는 Ctrl/⌘+S) → 저장소에 커밋 → 1~2분 뒤 사이트에 반영
+- 바꾼 게임의 UPDATED 날짜는 PUBLISH 때 오늘로 자동 갱신돼요
+- 저장 안 한 작업은 브라우저에 임시 저장돼서 새로고침해도 복구할 수 있어요
+
+`data/games.json`을 저장소에서 직접 고쳐도 똑같이 반영돼요.
+
+## 로컬에서 보기
+
+`data/games.json`을 fetch로 읽기 때문에 파일을 더블클릭하면 안 열려요. 간단한 서버로 여세요.
 
 ```bash
 python3 -m http.server 8000
 ```
 
-그다음 `http://localhost:8000` 접속.
+그다음 http://localhost:8000
 
-배포용 빌드(`dist/index.html`과 `dist/assets`):
+## BGM
 
-```bash
-npm install
-npm run build
-```
-
-스프라이트 미리보기 PNG(`records/sprites.png`):
+기본 BGM `assets/bgm/attract.mp3`는 이 사이트용으로 새로 작곡한 칩튠 루프예요 (A단조, 112 BPM, 약 69초, 끊김 없이 반복).
+코드로 합성한 곡이라 다른 사람의 저작권이 없어요. 원본은 `fx-src/bgm/compose.py`이고, 멜로디나 템포를 고쳐서 다시 만들 수 있어요.
 
 ```bash
-npm run preview
+python3 fx-src/bgm/compose.py attract.wav
 ```
 
-## 구조
+```bash
+ffmpeg -i attract.wav -b:a 128k assets/bgm/attract.mp3
+```
 
-- `src/sprites.js` 고양이 도트. 레퍼런스 시트의 22×14 옆모습을 그대로 따르고, 털색 역할(외곽선/베이스/줄무늬 등)로 그려서 팔레트만 바꾸면 다른 털색도 만들 수 있어요. 게임에서는 노란 치즈냥(GINGER)만 써요.
-- `src/cat.js` 낙하 물리, 낙하산, 바람에 날리는 스카프
-- `src/world.js` 골목 배경(패럴랙스 먼 벽, 벽돌 옆벽), 장애물 생성과 그리기
-- `src/game.js` 상태(타이틀/플레이/결과), 점수, 배율, 충돌, HUD
-- `src/audio.js` 효과음(WebAudio로 겹쳐 재생, 피치 변화)과 배경음악
-- `assets/audio/` CC0 효과음과 배경음악("Lights at Night" by Tsorthan Grove). 출처는 `assets/audio/CREDITS.md`에 있어요.
-- `vendor/pixelfx/` [pixelfx](https://github.com/patch-gg/pixelfx) (MIT) 코어와 게임에서 쓰는 이펙트: 새(critters/bird), 사망 연기(spawn/poof), 물고기 획득(pickups/collect-burst), 배율 연출(ui/combo-counter), 새 충돌 깃털(holy/feather-burst). 라이선스와 고지는 `vendor/pixelfx/LICENSE`, `NOTICE.md`에 있어요.
-- `.claude/skills/pixelfx/` pixelfx Claude Code 스킬
+다른 곡으로 바꾸려면 mp3를 `assets/bgm/`에 넣고 관리 페이지 SITE SETTINGS의 BGM 경로를 바꾸세요.
+브라우저 정책 때문에 자동재생은 안 되고, 상단 BGM 버튼으로 켜요. 한 번 켜두면 다음 방문 때 첫 클릭에 이어서 재생돼요.
+
+## 이펙트 수정하기
+
+화면 연출(메인 배경, 코인 투입, CRT 켜짐, PRESS START, 상태 배지, NO SIGNAL)은 전부 이 사이트용으로 새로 만든 pixelfx 이펙트예요.
+원본은 `fx-src/arcade/`에 있고, 고친 뒤 아래 스크립트로 번들과 스프라이트 시트를 다시 만들어요.
+
+```bash
+git clone https://github.com/patch-gg/pixelfx ../pixelfx
+```
+
+```bash
+./fx-src/build.sh
+```
+
+배지나 NO SIGNAL의 길이·크기를 바꿨다면 `js/sprites.js`의 frames/w/h/cols 값도 맞춰주세요.
+
+## 키보드
+
+| 키 | 동작 |
+|---|---|
+| `5` | 코인 넣기 |
+| `1` | 1P START (추천 게임 열기, 크레딧 1 소모) |
+| 방향키 | 게임 카드 선택 |
+| `Enter` | 게임 정보 열기 |
+| `Esc` | 닫기 |
+
+## 크레딧
+
+- 픽셀 이펙트 엔진: [pixelfx](https://github.com/patch-gg/pixelfx) (MIT, `licenses/pixelfx-MIT.txt`)
+- 효과음: [Kenney](https://kenney.nl) Interface Sounds 외 (CC0, `licenses/`)
+- BGM: 이 사이트 전용 오리지널 (`fx-src/bgm/compose.py`)
+- 글꼴: [Galmuri](https://github.com/quiple/galmuri) (SIL OFL 1.1, `licenses/LICENSE-Galmuri-OFL.txt`)
