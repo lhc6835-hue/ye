@@ -67,7 +67,7 @@
   };
 
   // ---------------------------------------------------------------- state
-  let data = null, original = "", baseSha = "", sel = 0, view = "game";
+  let data = null, original = "", baseSha = "", sel = 0, view = "quick";
   const covers = new Map(); // game index key -> { file, dataUrl, ext }
   const draftKey = () => `arcade-admin:draft:${gh.owner}/${gh.repo}`;
   const dirtyCount = () => {
@@ -170,7 +170,9 @@
         h("i"), h("span", { class: "t" }, changed ? h("span", { class: "mark", text: "* " }) : null, g.title || "(제목 없음)"), h("span", { class: "s", text: S.label })));
     }));
     $("#siteBtn").setAttribute("aria-pressed", String(view === "site"));
+    $("#quickBtn").setAttribute("aria-pressed", String(view === "quick"));
   }
+  $("#quickBtn").addEventListener("click", () => { view = "quick"; renderList(); renderEditor(); });
   $("#newGame").addEventListener("click", () => {
     data.games.unshift({ id: `game-${stamp().slice(2, 12)}`, title: "NEW GAME", subtitle: "", status: "dev", version: "0.1.0", featured: false, color: "#f53cd1",
       genre: [], platforms: ["web"], players: "1P", released: "", updated: today(), cover: "", description: "", controls: [], links: { play: "", download: "", source: "" }, changelog: [] });
@@ -190,6 +192,7 @@
   function renderEditor() {
     const ed = $("#editor");
     if (view === "site") return renderSite(ed);
+    if (view === "quick") return renderQuick(ed);
     const g = data.games[sel];
     if (!g) { ed.replaceChildren(h("p", { class: "svc-empty", text: "게임이 없어요. + NEW로 첫 게임을 추가하세요." })); return; }
     g.links = g.links || {}; g.controls = g.controls || []; g.changelog = g.changelog || []; g.platforms = g.platforms || []; g.genre = g.genre || [];
@@ -203,13 +206,7 @@
     // cover
     const pending = covers.get(g);
     const prev = h("div", { class: "cover-prev" }, pending ? h("img", { src: pending.dataUrl, alt: "" }) : g.cover ? h("img", { src: g.cover, alt: "", onerror: (e) => e.target.replaceWith("이미지를 못 불러왔어요") }) : "NO SIGNAL");
-    const file = h("input", { type: "file", accept: "image/png,image/gif,image/jpeg,image/webp", onchange: (e) => {
-      const f = e.target.files?.[0]; if (!f) return;
-      if (f.size > 4 * 1024 * 1024) { toast("TOO BIG", "커버는 4MB 이하로 올려주세요."); e.target.value = ""; return; }
-      const rd = new FileReader();
-      rd.onload = () => { covers.set(g, { file: f, dataUrl: rd.result, ext: (f.name.split(".").pop() || "png").toLowerCase().replace(/[^a-z0-9]/g, "") }); renderEditor(); markDirty(); };
-      rd.readAsDataURL(f);
-    } });
+    const file = h("input", { type: "file", accept: IMG_ACCEPT, onchange: (e) => readImage(e.target, (c) => { covers.set(g, c); renderEditor(); markDirty(); }) });
 
     // controls
     const ctl = h("div", { class: "rows" }, ...g.controls.map((c, i) => h("div", { class: "ctl-row" },
@@ -276,6 +273,121 @@
     return h("select", { onchange: (e) => on(e.target.value) }, ...Object.entries(STATUS).map(([k, v]) => h("option", { value: k, selected: k === value ? "" : null, text: v.label })));
   }
 
+  // ---------------------------------------------------------------- thumbnails
+  const IMG_ACCEPT = "image/gif,image/jpeg,image/png,image/webp,.gif,.jpg,.jpeg,.png,.webp";
+  const IMG_EXT = { "image/gif": "gif", "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+  const MAX_IMG = 10 * 1024 * 1024;
+  function readImage(input, done) {
+    const f = input.files?.[0];
+    if (!f) return;
+    const ext = IMG_EXT[f.type] || { gif: "gif", jpg: "jpg", jpeg: "jpg", png: "png", webp: "webp" }[(f.name.split(".").pop() || "").toLowerCase()];
+    if (!ext) { toast("FORMAT", "GIF, JPEG, PNG, WEBP 이미지만 올릴 수 있어요."); input.value = ""; return; }
+    if (f.size > MAX_IMG) { toast("TOO BIG", "썸네일은 10MB 이하로 올려주세요. 큰 GIF는 길이나 크기를 줄여주세요."); input.value = ""; return; }
+    const rd = new FileReader();
+    rd.onload = () => done({ file: f, dataUrl: rd.result, ext });
+    rd.readAsDataURL(f);
+  }
+
+  // ---------------------------------------------------------------- quick add: a playable GitHub address -> a post
+  // Accepts https://github.com/<owner>/<repo>, https://<owner>.github.io/<repo>/ or any other playable https address.
+  function parseGameUrl(raw) {
+    let u;
+    try { u = new URL(/^https?:\/\//i.test(raw) ? raw : "https://" + raw); } catch { return null; }
+    const seg = u.pathname.split("/").filter(Boolean);
+    if (u.hostname === "github.com" && seg.length >= 2) return { owner: seg[0], repo: seg[1].replace(/\.git$/, ""), play: "" };
+    const m = u.hostname.match(/^([\w-]+)\.github\.io$/i);
+    if (m) {
+      const owner = m[1], repo = seg.length && !/\.\w+$/.test(seg[0]) ? seg[0] : `${owner}.github.io`;
+      return { owner, repo, play: u.href };
+    }
+    return { owner: "", repo: "", play: u.href };
+  }
+  const niceTitle = (name) => String(name || "").replace(/\.github\.io$/i, "").replace(/[-_]+/g, " ").trim().toUpperCase();
+  async function fetchGameMeta(raw) {
+    const p = parseGameUrl(raw);
+    if (!p) throw new Error("주소 형식이 이상해요. https://github.com/아이디/저장소 처럼 넣어주세요.");
+    const meta = { title: "", description: "", version: "", play: p.play, source: "", genre: [], warn: "" };
+    if (!p.owner) { meta.warn = "GitHub 주소가 아니라서 제목과 설명은 직접 적어주세요."; return meta; }
+    let repo;
+    try { repo = await gh.req(`/repos/${encodeURIComponent(p.owner)}/${encodeURIComponent(p.repo)}`); }
+    catch (e) {
+      meta.warn = e.status === 404 ? "저장소 정보를 못 읽었어요 (비공개 저장소일 수 있어요). 제목과 설명은 직접 적어주세요." : `저장소 정보를 못 읽었어요: ${e.message}`;
+      meta.title = niceTitle(p.repo);
+      if (!meta.play) meta.play = `https://${p.owner}.github.io/${p.repo === p.owner + ".github.io" ? "" : p.repo + "/"}`;
+      return meta;
+    }
+    meta.title = niceTitle(repo.name);
+    meta.description = repo.description || "";
+    meta.source = repo.private ? "" : repo.html_url;
+    meta.genre = (repo.topics || []).filter((t) => !/^(game|games|html5|javascript|github-pages)$/i.test(t)).slice(0, 3);
+    if (!meta.play) {
+      if (/^https?:\/\//i.test(repo.homepage || "")) meta.play = repo.homepage;
+      else if (repo.has_pages) {
+        try { meta.play = (await gh.req(`/repos/${encodeURIComponent(p.owner)}/${encodeURIComponent(p.repo)}/pages`)).html_url; }
+        catch { meta.play = `https://${p.owner}.github.io/${repo.name === p.owner + ".github.io" ? "" : repo.name + "/"}`; }
+      } else meta.warn = "이 저장소는 GitHub Pages가 꺼져 있어서 플레이 주소를 못 찾았어요. PLAY 주소를 직접 넣어주세요.";
+    }
+    try { const rel = await gh.req(`/repos/${encodeURIComponent(p.owner)}/${encodeURIComponent(p.repo)}/releases/latest`); meta.version = String(rel.tag_name || "").replace(/^v/i, ""); } catch { /* no releases */ }
+    return meta;
+  }
+  const quick = { url: "", title: "", description: "", status: "beta", version: "", play: "", source: "", genre: [], cover: null, loaded: false, busy: false };
+  function renderQuick(ed) {
+    const q = quick;
+    const set = (k) => (e) => { q[k] = e.target.value; };
+    const prev = h("div", { class: "cover-prev" }, q.cover ? h("img", { src: q.cover.dataUrl, alt: "" }) : "썸네일을 넣어주세요");
+    const load = async () => {
+      if (!q.url.trim()) { toast("URL", "게임 주소를 넣어주세요."); return; }
+      q.busy = true; renderEditor();
+      try {
+        const m = await fetchGameMeta(q.url.trim());
+        Object.assign(q, { title: m.title, description: m.description, version: m.version, play: m.play, source: m.source, genre: m.genre, loaded: true });
+        if (m.version && q.status === "beta") q.status = "release";
+        if (m.warn) toast("CHECK", m.warn); else toast("LOADED", "정보를 불러왔어요. 썸네일을 넣고 게시하세요.");
+      } catch (e) { toast("FAILED", e.message); }
+      q.busy = false; renderEditor();
+    };
+    const post = async () => {
+      if (!q.title.trim()) { toast("TITLE", "제목을 적어주세요."); return; }
+      if (!/^https?:\/\//i.test(q.play)) { toast("PLAY", "플레이 주소가 필요해요."); return; }
+      if (!q.cover) { toast("THUMBNAIL", "썸네일을 넣어주세요 (GIF, JPEG, PNG, WEBP)."); return; }
+      let id = slug(q.title) || `game-${stamp().slice(2, 12)}`;
+      while (data.games.some((g) => g.id === id)) id += "-2";
+      const g = { id, title: q.title.trim(), subtitle: "", status: q.status, version: q.version.trim(), featured: true, color: STATUS[q.status].hex,
+        genre: q.genre, platforms: ["web"], players: "1P", released: q.status === "release" ? today() : "", updated: today(), cover: "",
+        description: q.description.trim(), controls: [], links: { play: q.play.trim(), download: "", source: q.source.trim() },
+        changelog: [{ version: q.version.trim(), date: today(), status: q.status, notes: ["첫 공개"] }] };
+      data.games.unshift(g);
+      covers.set(g, q.cover);
+      q.busy = true; renderEditor(); markDirty();
+      const ok = await publish();
+      q.busy = false;
+      if (ok) { Object.assign(quick, { url: "", title: "", description: "", status: "beta", version: "", play: "", source: "", genre: [], cover: null, loaded: false }); view = "game"; sel = 0; }
+      renderList(); renderEditor();
+    };
+    ed.replaceChildren(
+      h("div", { class: "ed-head" }, h("h2", { text: "NEW POST" })),
+      h("p", { text: "플레이할 수 있는 GitHub 주소를 넣고 불러오기를 누르면 제목, 설명, 링크, 버전을 채워줘요. 썸네일만 넣고 게시하면 끝." }),
+      h("form", { class: "svc-form", onsubmit: (e) => { e.preventDefault(); load(); } },
+        h("fieldset", {}, h("legend", { text: "1. GAME ADDRESS" }),
+          h("div", { class: "quick-url" },
+            h("input", { id: "q-url", value: q.url, placeholder: "https://아이디.github.io/게임  또는  https://github.com/아이디/게임", oninput: set("url"), "aria-label": "게임 주소" }),
+            h("button", { class: "btn", type: "submit", disabled: q.busy, text: q.busy && !q.loaded ? "불러오는 중..." : "불러오기" }))),
+        h("fieldset", { disabled: !q.loaded || (q.busy && q.loaded) }, h("legend", { text: "2. CHECK" }),
+          h("div", { class: "row2" },
+            field("TITLE", h("input", { id: "q-title", value: q.title, oninput: set("title") })),
+            field("STATUS", statusSelect(q.status, (v) => { q.status = v; }))),
+          field("DESCRIPTION", h("textarea", { id: "q-desc", value: q.description, oninput: set("description") })),
+          h("div", { class: "row3" },
+            field("VERSION", h("input", { id: "q-ver", value: q.version, placeholder: "1.0.0", oninput: set("version") }), "릴리스가 있으면 자동"),
+            field("PLAY", h("input", { id: "q-play", type: "url", value: q.play, oninput: set("play") })),
+            field("SOURCE", h("input", { id: "q-src", type: "url", value: q.source, oninput: set("source") })))),
+        h("fieldset", { disabled: !q.loaded || (q.busy && q.loaded) }, h("legend", { text: "3. THUMBNAIL" }),
+          h("div", { class: "cover-box" }, prev, h("div", { class: "rows" },
+            field("이미지 파일", h("input", { id: "q-cover", type: "file", accept: IMG_ACCEPT, onchange: (e) => readImage(e.target, (c) => { q.cover = c; renderEditor(); }) }), "GIF(움직이는 것도 OK), JPEG, PNG, WEBP · 10MB 이하 · 16:10 비율 권장")))),
+        h("div", { class: "actions" },
+          h("button", { class: "btn primary", type: "button", id: "q-post", disabled: !q.loaded || q.busy, text: q.busy && q.loaded ? "게시하는 중..." : "게시하기 ▶", onclick: post }))));
+  }
+
   // ---------------------------------------------------------------- editor: site
   function renderSite(ed) {
     const s = data.site; s.links = s.links || {};
@@ -297,7 +409,7 @@
     const btn = $("#publishBtn");
     btn.disabled = true;
     const ids = data.games.map((g) => g.id);
-    if (new Set(ids).size !== ids.length) { toast("ID 중복", "게임 ID가 겹쳐요. 서로 다르게 바꿔주세요."); btn.disabled = false; return; }
+    if (new Set(ids).size !== ids.length) { toast("ID 중복", "게임 ID가 겹쳐요. 서로 다르게 바꿔주세요."); btn.disabled = false; return false; }
     try {
       toast("PUBLISH", "저장소에 올리는 중...");
       // 1. covers
@@ -322,12 +434,14 @@
       original = JSON.stringify(data);
       try { localStorage.removeItem(draftKey()); } catch { /* */ }
       renderEditor(); markDirty();
-      toast("PUBLISHED", "저장 완료! GitHub Pages 반영까지 1~2분 걸려요.");
+      toast("PUBLISHED", "게시 완료! 사이트 반영까지 1~2분 걸려요.");
+      return true;
     } catch (err) {
       const why = err.status === 409 || err.status === 422 ? "그 사이 저장소의 데이터가 바뀌었어요. 새로고침해서 다시 불러온 뒤 수정해주세요 (작업 내용은 복구할 수 있어요)."
         : err.status === 403 || err.status === 404 ? "토큰에 Contents 쓰기 권한이 없거나 저장소 선택이 빠졌어요." : err.message;
       toast("FAILED", why);
       markDirty();
+      return false;
     }
   }
   $("#publishBtn").addEventListener("click", publish);

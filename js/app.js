@@ -323,7 +323,11 @@
     const grid = $("#grid"), list = visibleGames();
     Sprites.forget(grid);
     state.sel = -1;
-    grid.replaceChildren(...(list.length ? list.map(card) : [h("div", { class: "empty" }, h("b", { text: "NO GAME FOUND" }), h("span", { text: "조건에 맞는 게임이 없어요. 필터나 검색어를 바꿔보세요." }))]));
+    const none = !DATA.games.length;
+    grid.replaceChildren(...(list.length ? list.map(card) : [h("div", { class: "empty" },
+      Sprites.canvas("no-signal", "empty-screen"),
+      h("b", { text: none ? "NOW LOADING..." : "NO GAME FOUND" }),
+      h("span", { text: none ? "아직 올라온 게임이 없어요. 첫 게임이 곧 들어와요!" : "조건에 맞는 게임이 없어요. 필터나 검색어를 바꿔보세요." }))]));
     $("#resultLine").textContent = `${pad2(list.length)} / ${pad2(DATA.games.length)} GAMES`;
   }
   function select(i, scroll = true) {
@@ -461,7 +465,7 @@
   function pressStart() {
     if (!state.credits) { Sound.play("denied", 0.5); toast("INSERT COIN", "코인을 먼저 넣어주세요. 코인 슬롯을 누르거나 키보드 5"); return; }
     const list = featured();
-    if (!list.length) return;
+    if (!list.length) { Sound.play("denied", 0.5); toast("NO GAME", "아직 플레이할 게임이 없어요. 곧 올라와요!"); return; }
     setCredits(state.credits - 1);
     Sound.play("boot", 0.45);
     Fx.burst(PX.fx.pressStart, $("#attractScreen"), {});
