@@ -26,7 +26,10 @@
       "version": "1.0.0",
       "featured": true,
       "color": "#ffc626",
-      "genre": [],
+      "genre": [
+        "스토리",
+        "퍼즐"
+      ],
       "platforms": [
         "web"
       ],
