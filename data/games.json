@@ -19,6 +19,40 @@
   },
   "games": [
     {
+      "id": "chaoschess",
+      "title": "CHAOSCHESS",
+      "subtitle": "",
+      "status": "release",
+      "version": "",
+      "featured": true,
+      "color": "#ffc626",
+      "genre": [],
+      "platforms": [
+        "web"
+      ],
+      "players": "1P",
+      "released": "2026-11-20",
+      "updated": "2026-11-20",
+      "cover": "assets/covers/chaoschess-20261120093132.gif",
+      "description": "",
+      "controls": [],
+      "links": {
+        "play": "https://lhc6835-hue.github.io/chaoschess",
+        "download": "",
+        "source": "https://github.com/lhc6835-hue/chaoschess"
+      },
+      "changelog": [
+        {
+          "version": "",
+          "date": "2026-11-20",
+          "status": "release",
+          "notes": [
+            "첫 공개"
+          ]
+        }
+      ]
+    },
+    {
       "id": "parry-cube",
       "title": "Parry Cube",
       "subtitle": "",
