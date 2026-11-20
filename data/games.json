@@ -19,6 +19,40 @@
   },
   "games": [
     {
+      "id": "es",
+      "title": "ES",
+      "subtitle": "",
+      "status": "beta",
+      "version": "",
+      "featured": true,
+      "color": "#4ce8d8",
+      "genre": [],
+      "platforms": [
+        "web"
+      ],
+      "players": "1P",
+      "released": "",
+      "updated": "2026-11-20",
+      "cover": "assets/covers/es-20261120093213.gif",
+      "description": "",
+      "controls": [],
+      "links": {
+        "play": "https://lhc6835-hue.github.io/ES",
+        "download": "",
+        "source": "https://github.com/lhc6835-hue/ES"
+      },
+      "changelog": [
+        {
+          "version": "",
+          "date": "2026-11-20",
+          "status": "beta",
+          "notes": [
+            "첫 공개"
+          ]
+        }
+      ]
+    },
+    {
       "id": "chaoschess",
       "title": "CHAOSCHESS",
       "subtitle": "",
