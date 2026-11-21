@@ -19,6 +19,40 @@
   },
   "games": [
     {
+      "id": "orbit-hop",
+      "title": "Orbit Hop",
+      "subtitle": "",
+      "status": "release",
+      "version": "",
+      "featured": true,
+      "color": "#ffc626",
+      "genre": [],
+      "platforms": [
+        "web"
+      ],
+      "players": "1P",
+      "released": "2026-11-21",
+      "updated": "2026-11-21",
+      "cover": "assets/covers/orbit-hop-20261121002704.gif",
+      "description": "",
+      "controls": [],
+      "links": {
+        "play": "https://lhc6835-hue.github.io/one",
+        "download": "",
+        "source": "https://github.com/lhc6835-hue/one"
+      },
+      "changelog": [
+        {
+          "version": "",
+          "date": "2026-11-21",
+          "status": "release",
+          "notes": [
+            "첫 공개"
+          ]
+        }
+      ]
+    },
+    {
       "id": "es",
       "title": "ES",
       "subtitle": "",
