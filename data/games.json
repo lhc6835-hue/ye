@@ -19,6 +19,40 @@
   },
   "games": [
     {
+      "id": "celesta",
+      "title": "CELESTA",
+      "subtitle": "",
+      "status": "release",
+      "version": "",
+      "featured": true,
+      "color": "#ffc626",
+      "genre": [],
+      "platforms": [
+        "web"
+      ],
+      "players": "1P",
+      "released": "2026-11-21",
+      "updated": "2026-11-21",
+      "cover": "assets/covers/celesta-20261121083335.gif",
+      "description": "",
+      "controls": [],
+      "links": {
+        "play": "https://lhc6835-hue.github.io/celesta",
+        "download": "",
+        "source": "https://github.com/lhc6835-hue/celesta"
+      },
+      "changelog": [
+        {
+          "version": "",
+          "date": "2026-11-21",
+          "status": "release",
+          "notes": [
+            "첫 공개"
+          ]
+        }
+      ]
+    },
+    {
       "id": "free-range",
       "title": "FREE RANGE",
       "subtitle": "",
