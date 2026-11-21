@@ -19,6 +19,40 @@
   },
   "games": [
     {
+      "id": "free-range",
+      "title": "FREE RANGE",
+      "subtitle": "",
+      "status": "release",
+      "version": "1.0.0",
+      "featured": true,
+      "color": "#ffc626",
+      "genre": [],
+      "platforms": [
+        "web"
+      ],
+      "players": "1P",
+      "released": "2026-11-21",
+      "updated": "2026-11-21",
+      "cover": "assets/covers/free-range-20261121030747.gif",
+      "description": "",
+      "controls": [],
+      "links": {
+        "play": "https://lhc6835-hue.github.io/chicken-is-delicious",
+        "download": "",
+        "source": "https://github.com/lhc6835-hue/chicken-is-delicious"
+      },
+      "changelog": [
+        {
+          "version": "1.0.0",
+          "date": "2026-11-21",
+          "status": "release",
+          "notes": [
+            "첫 공개"
+          ]
+        }
+      ]
+    },
+    {
       "id": "beatforge",
       "title": "BeatForge",
       "subtitle": "",
